@@ -36,20 +36,24 @@ Running it with no session stored is not an error.`,
 		defer stop()
 
 		cfg, err := config.Load()
-		if err != nil {
-			return err
+		unreadable := err != nil
+		if unreadable {
+			ui.Warn("the stored configuration could not be read — clearing it anyway")
+			cfg = config.Config{URL: config.DefaultURL}
 		}
-		if cfg.Token == "" {
+		if cfg.Token == "" && !unreadable {
 			ui.Warn("no session stored — nothing to revoke")
 			warnEnvTokenWins()
 			return logoutReport(cfg.URL, false)
 		}
 
-		api := client.New(cfg.URL, cfg.Token)
-		if err := api.Logout(ctx); err != nil {
-			var apiErr *client.Error
-			if !errors.As(err, &apiErr) || !apiErr.Unauthenticated() {
-				ui.Warn("the server could not revoke the session — %s", err)
+		if cfg.Token != "" {
+			api := client.New(cfg.URL, cfg.Token)
+			if err := api.Logout(ctx); err != nil {
+				var apiErr *client.Error
+				if !errors.As(err, &apiErr) || !apiErr.Unauthenticated() {
+					ui.Warn("the server could not revoke the session — %s", err)
+				}
 			}
 		}
 		if err := config.Clear(); err != nil {

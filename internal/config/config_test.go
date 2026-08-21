@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"strings"
 	"testing"
 )
 
@@ -141,5 +142,57 @@ func TestNormalizeURL(t *testing.T) {
 		if got := NormalizeURL(c.in); got != c.want {
 			t.Errorf("NormalizeURL(%q): got %q, want %q", c.in, got, c.want)
 		}
+	}
+}
+
+// TestClearSurvivesAnUnparseableFile pins the property that matters most about
+// logout: a credential that cannot be parsed must still be removed. Refusing
+// because the YAML is malformed leaves a working token exactly where somebody
+// tried to delete it.
+func TestClearSurvivesAnUnparseableFile(t *testing.T) {
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	if err := os.MkdirAll(Dir(), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	corrupt := []byte("url: https://courrier.facile.studio\ntoken: still-valid\n  bad: [unclosed\n")
+	if err := os.WriteFile(Path(), corrupt, 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := Clear(); err != nil {
+		t.Fatalf("Clear on an unparseable file: %v", err)
+	}
+
+	data, err := os.ReadFile(Path())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(data), "still-valid") {
+		t.Fatalf("the token survived logout: %s", data)
+	}
+}
+
+// TestSaveTightensAnExistingLooseFile guards the gap between OpenFile's perm
+// argument, which applies only at creation, and an existing file that already
+// carries a looser mode.
+func TestSaveTightensAnExistingLooseFile(t *testing.T) {
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	if err := os.MkdirAll(Dir(), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(Path(), []byte("url: https://old.example.com\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := Save(Config{URL: "https://new.example.com", Token: "t"}); err != nil {
+		t.Fatal(err)
+	}
+
+	info, err := os.Stat(Path())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := info.Mode().Perm(); got != 0o600 {
+		t.Fatalf("mode is %o after Save, want 600", got)
 	}
 }

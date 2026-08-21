@@ -100,6 +100,10 @@ func Save(cfg Config) error {
 	if err != nil {
 		return err
 	}
+	if err := f.Chmod(0o600); err != nil {
+		f.Close()
+		return err
+	}
 	if _, err := f.Write(data); err != nil {
 		f.Close()
 		return err
@@ -108,12 +112,16 @@ func Save(cfg Config) error {
 }
 
 // Clear removes the stored session but keeps the instance URL and the default
-// account, so logging out does not also make the user retype where their
-// Courrier is and which mailbox they read.
+// account, so logging out does not also make the user retype both.
+//
+// A file that cannot be parsed still loses its token. Logout is what somebody
+// reaches for on a borrowed machine, and refusing because the YAML is malformed
+// would leave a working credential exactly where they tried to remove it. The
+// other fields are unrecoverable in that case, so they reset to defaults.
 func Clear() error {
 	cfg, err := Load()
 	if err != nil {
-		return err
+		cfg = Config{URL: DefaultURL}
 	}
 	cfg.Token = ""
 	return Save(cfg)
