@@ -1,0 +1,11 @@
+remotes:
+  - git_url: https://github.com/FacileStudio/hooks
+    ref: v1.0.0
+    configs:
+      - common.yml
+      - filet.yml
+
+pre-push:
+  jobs:
+    - name: check
+      run: sh scripts/check.sh
