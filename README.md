@@ -102,7 +102,9 @@ mise run format     # rewrite Go sources in place
 
 - [ROADMAP.md](ROADMAP.md) — scope, what is deliberately out, and instance behaviour worth knowing
 - [integrations/SKILL.md](integrations/SKILL.md) — the AI agent registration
-- [CLI-STANDARD.md](https://github.com/FacileStudio/Wiki/blob/main/CLI-STANDARD.md) — normative for this repo
+- `CLI-STANDARD.md` — the suite CLI, installer and credential standard, normative for this repo.
+  It lived in `FacileStudio/Wiki`, which was removed on 2026-08-22; the link is omitted until it
+  has a permanent home again
 
 ---
 

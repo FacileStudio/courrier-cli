@@ -3,8 +3,9 @@
 Terminal client for [Courrier](https://github.com/FacileStudio/Courrier), the suite's
 self-hosted email client. Go, cobra, one binary named `courrier`.
 
-Conventions come from [`Wiki/CLI-STANDARD.md`](https://github.com/FacileStudio/Wiki/blob/main/CLI-STANDARD.md),
-which is normative. When this repo disagrees with it, this repo is wrong.
+Conventions come from `CLI-STANDARD.md`, which is normative: when this repo disagrees with it,
+this repo is wrong. It lived in `FacileStudio/Wiki`, removed on 2026-08-22, so there is no link
+to give until it has a permanent home again.
 
 ## Why this exists
 

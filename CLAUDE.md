@@ -33,8 +33,9 @@ a fifth needs a reason — a client for one API does not need a framework.
 
 ## Conventions
 
-These come from `Wiki/CLI-STANDARD.md`, which is normative. When this repo disagrees with
-it, this repo is wrong.
+These come from `CLI-STANDARD.md`, which is normative. When this repo disagrees with it,
+this repo is wrong. It lived in `FacileStudio/Wiki`, removed on 2026-08-22; until it has a
+permanent home, the history is in `~/backups/FacileStudio-Wiki-20260822.bundle`.
 
 - **`Short` and flag help: capitalized, imperative, no trailing period.** `"List mail
   accounts"`, never `"Lists mail accounts."`.
