@@ -26,3 +26,21 @@ checksum:
 
 changelog:
   sort: asc
+
+brews:
+  - name: courrier
+    homepage: https://github.com/FacileStudio/courrier-cli
+    description: Terminal client for Courrier, the suite's self-hosted email service
+    directory: Formula
+    repository:
+      owner: FacileStudio
+      name: homebrew-tap
+      branch: main
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    commit_author:
+      name: goreleaserbot
+      email: bot@goreleaser.com
+    install: |
+      bin.install "courrier"
+    test: |
+      system "#{bin}/courrier", "--version"
