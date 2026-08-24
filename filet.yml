@@ -8,6 +8,8 @@
 # defaults of the tools they come from, not numbers picked to make a count go
 # away.
 
+kind: cli
+
 ignore:
   - .git
   - vendor
