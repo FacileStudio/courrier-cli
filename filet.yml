@@ -1,0 +1,53 @@
+# courrier-cli's coding standard, enforced by filet.
+# https://github.com/FacileStudio/filet
+#
+#   filet check .     the rules
+#   filet roast .     the rules, with commentary
+#
+# Built from the Go family's canonical template. The limits are the published
+# defaults of the tools they come from, not numbers picked to make a count go
+# away.
+
+ignore:
+  - .git
+  - vendor
+  - dist
+  - build
+  - testdata
+  - coverage
+
+extensions: [.go]
+
+limits:
+  fileLines: 300
+  funcsPerFile: 0
+  funcLines: 60
+  funcStatements: 40
+  lineLength: 120
+  params: 5
+  returns: 3
+  nesting: 5
+  complexity: 15
+  structFields: 15
+  interfaceMethods: 5
+
+architecture:
+  # cmd/ holds the cobra command tree and main.go is the entry point, so
+  # neither is a domain module and neither carries a router. Everything that
+  # is not printing lives under internal/.
+  requiredDirs: [cmd, internal]
+  requiredFiles:
+    "internal/client": [client.go, types.go]
+    "internal/config": [config.go]
+    "internal/loopback": [loopback.go]
+    "internal/ui": [ui.go]
+
+style:
+  banInlineComments: true
+  banTODO: true
+  requireDocComments: true
+  banGlobalMutable: true
+  banInit: true
+  banTrailingSpace: true
+
+failOn: error
