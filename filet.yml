@@ -41,7 +41,6 @@ architecture:
   requiredFiles:
     "internal/client": [client.go, types.go]
     "internal/config": [config.go]
-    "internal/loopback": [loopback.go]
     "internal/ui": [ui.go]
 
 style:

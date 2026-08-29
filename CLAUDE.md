@@ -21,15 +21,17 @@ cmd/               one file per command; root.go owns flags, exit codes and acco
 internal/
   client/          the HTTP surface
   config/          the instance URL, the session token, the default account
-  loopback/        the porte SSO one-time-code listener
   ui/              CLI-STANDARD §7 output vocabulary
 integrations/      SKILL.md, the AI agent registration
 install.sh         the four-line facile shim; nothing else may go in it
 scripts/check.sh   the quality gate
 ```
 
-Dependencies are cobra, `fatih/color`, `golang.org/x/term` and `gopkg.in/yaml.v3`. Adding
-a fifth needs a reason — a client for one API does not need a framework.
+Dependencies are cobra, `fatih/color`, `golang.org/x/term`, `gopkg.in/yaml.v3` and
+`FacileStudio/porte` for `porte/loopback`. Adding a sixth needs a reason — a client for one
+API does not need a framework. `porte/loopback` is standard library only by design, so it
+brings none of porte's server half with it; `go list -deps ./...` must stay free of chi,
+pgx, oauth2 and go-oidc.
 
 ## Conventions
 
@@ -67,7 +69,10 @@ HTTP layer.
   waits for the redirect with the one-time code, and trades it at
   `/api/auth/oidc/exchange`. The state nonce is echoed and verified, so a callback from a
   different login is refused — and the listener keeps waiting rather than failing, because
-  a browser requests `/favicon.ico` unprompted.
+  a browser requests `/favicon.ico` unprompted. The listener is `porte/loopback`, shared
+  with the other suite CLIs, and it renders the suite's login page on `127.0.0.1` rather
+  than a page this repo owns. `cmd/login.go` supplies the two things that are Courrier's:
+  the `/api` mount point and the app name on the page.
 - **Password**: prompts for an address and a password, exchanged at `/api/auth/login`.
 
 Both end with a bearer token in `${XDG_CONFIG_HOME:-~/.config}/courrier/config.yml`

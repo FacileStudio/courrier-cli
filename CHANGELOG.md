@@ -10,6 +10,24 @@ record what shipped rather than what was written down at the time.
 
 ## [Unreleased]
 
+### Changed
+
+- The SSO login listener is now `porte/loopback` rather than this repo's
+  `internal/loopback`. The behaviour is the same flow with the same guarantees:
+  an ephemeral loopback port, an exact state comparison, a refused callback that
+  leaves the login open, the two second shutdown grace and the three minute
+  timeout. What changes is the page the browser lands on. It is now the suite's
+  shared hand-off page instead of eight lines of inline styles, so a login that
+  ends in a browser looks the same in every Facile CLI. Refusals render that
+  same page instead of `text/plain`.
+- `porte/loopback` is standard library only, so the module adds nothing to the
+  binary but itself: `go list -deps ./...` names no chi, pgx, oauth2 or go-oidc.
+
+### Removed
+
+- `internal/loopback`. It was lifted into `porte/loopback` and the tests went
+  with it.
+
 ## [0.1.1] — 2026-08-24
 
 Release plumbing only. No change to the binary's behaviour.
