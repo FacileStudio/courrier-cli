@@ -10,6 +10,8 @@ record what shipped rather than what was written down at the time.
 
 ## [Unreleased]
 
+## [0.2.0] — 2026-08-30
+
 ### Changed
 
 - The SSO login listener is now `porte/loopback` rather than this repo's
@@ -88,6 +90,8 @@ Release plumbing only. No change to the binary's behaviour.
   the links 404. The standard is still what this repo is built to and is still
   named; only the URL is dropped.
 
-[Unreleased]: https://github.com/FacileStudio/courrier-cli/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/FacileStudio/courrier-cli/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/FacileStudio/courrier-cli/compare/v0.1.2...v0.2.0
+[0.1.2]: https://github.com/FacileStudio/courrier-cli/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/FacileStudio/courrier-cli/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/FacileStudio/courrier-cli/releases/tag/v0.1.0
