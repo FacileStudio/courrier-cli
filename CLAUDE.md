@@ -19,7 +19,7 @@ main.go            hands off to cmd
 cmd/               one file per command; root.go owns flags, exit codes and account
                    resolution, format.go the rendering shared between them
 internal/
-  client/          the HTTP surface
+  client/          the HTTP surface (mail, auth, keys)
   config/          the instance URL, the session token, the default account
   ui/              CLI-STANDARD §7 output vocabulary
 integrations/      SKILL.md, the AI agent registration
@@ -93,4 +93,5 @@ Both end with a bearer token in `${XDG_CONFIG_HOME:-~/.config}/courrier/config.y
 - **`COURRIER_TOKEN` holding a dashboard API token is single-occupancy.** Courrier keeps at
   most one *labelled* porte session per user, so minting a second revokes the first. A
   `courrier login` session is unlabelled and unaffected.
+- **API key management is mounted at `/api/apikeys`**. `courrier keys` creates, lists, and revokes them.
 - Rate limits: sync 5/min, folder sync 10/min, send 10/min, bulk-action 30/min.

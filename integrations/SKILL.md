@@ -47,6 +47,13 @@ courrier mark <ids...> --read|--unread|--star|--unstar|--archive|--delete
 courrier sync [--folder <id>]             Pull new mail from IMAP
 ```
 
+### API keys
+```
+courrier keys list [--app <name>]         List API keys
+courrier keys create --app <name> [flags] Create an API key (secret or public)
+courrier keys revoke <id> [--yes]         Revoke an API key by id
+```
+
 ### Global flags
 ```
 --json           One JSON document on stdout, nothing else. Forces colour off

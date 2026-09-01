@@ -10,6 +10,14 @@ record what shipped rather than what was written down at the time.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-09-01
+
+### Added
+
+- `courrier keys` command group for managing API keys (`list`, `create`, `revoke`).
+- Support for generating secret backend keys and public browser keys with allowed origins and daily request quotas.
+- Client methods `ListKeys`, `CreateKey`, and `RevokeKey` on `*client.Client`.
+
 ## [0.2.0] — 2026-08-30
 
 ### Changed
@@ -90,7 +98,8 @@ Release plumbing only. No change to the binary's behaviour.
   the links 404. The standard is still what this repo is built to and is still
   named; only the URL is dropped.
 
-[Unreleased]: https://github.com/FacileStudio/courrier-cli/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/FacileStudio/courrier-cli/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/FacileStudio/courrier-cli/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/FacileStudio/courrier-cli/compare/v0.1.2...v0.2.0
 [0.1.2]: https://github.com/FacileStudio/courrier-cli/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/FacileStudio/courrier-cli/compare/v0.1.0...v0.1.1

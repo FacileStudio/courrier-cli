@@ -14,6 +14,7 @@ the dashboard. Authenticates through the same porte SSO flow the browser uses.
 - `courrier search` — trigram search over subject, sender and body
 - `courrier send` — to, cc, subject, body from a string, a file or stdin, with attachments
 - `courrier mark` — read, unread, star, archive and delete, up to 200 messages at a time
+- `courrier keys` — list, create, and revoke API keys for applications
 - `--json` on every command carrying data
 
 ## Stack
@@ -65,6 +66,9 @@ courrier read --id 4812                       # one message
 courrier search "invoice" --limit 10
 courrier send --to a@b.com --subject "Re: quote" --body-file draft.txt
 courrier mark 4812 4813 --read
+courrier keys list
+courrier keys create --app myapp
+courrier keys revoke 1
 courrier inbox --json | jq '.emails[].id'
 ```
 

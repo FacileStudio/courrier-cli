@@ -97,7 +97,30 @@ func renderAccounts(accounts []client.Account, current int64) {
 			account.IMAPHost,
 		})
 	}
-	ui.Table([]string{"", "ID", "NAME", "ADDRESS", "IMAP"}, rows)
+}
+
+// renderKeys prints the registered API keys.
+func renderKeys(keys []client.Key) {
+	if len(keys) == 0 {
+		ui.Plain("No API keys")
+		return
+	}
+	rows := make([][]string, 0, len(keys))
+	for _, key := range keys {
+		quota := "unlimited"
+		if key.DailyQuota > 0 {
+			quota = fmt.Sprintf("%d/day", key.DailyQuota)
+		}
+		rows = append(rows, []string{
+			strconv.FormatInt(key.ID, 10),
+			key.App,
+			key.Kind,
+			key.Prefix,
+			quota,
+			relativeTime(key.CreatedAt),
+		})
+	}
+	ui.Table([]string{"ID", "APP", "KIND", "PREFIX", "QUOTA", "CREATED"}, rows)
 }
 
 // bodyOf returns the message text a terminal can show. Courrier returns both a

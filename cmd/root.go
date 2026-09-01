@@ -89,6 +89,7 @@ func Execute() {
 		searchCmd,
 		markCmd,
 		sendCmd,
+		keysCmd,
 	)
 
 	err := rootCmd.Execute()
