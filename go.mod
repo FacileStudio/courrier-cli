@@ -1,6 +1,6 @@
 module github.com/FacileStudio/courrier-cli
 
-go 1.25.0
+go 1.26
 
 require (
 	github.com/FacileStudio/porte v0.5.2

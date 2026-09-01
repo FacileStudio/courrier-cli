@@ -2,7 +2,7 @@
 lockfile = true
 
 [tools]
-go = "1.25"
+go = "1.26"
 lefthook = "latest"
 
 [hooks]
