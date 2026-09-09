@@ -21,17 +21,17 @@ ignore:
 extensions: [.go]
 
 limits:
-  fileLines: 300
-  funcsPerFile: 0
-  funcLines: 60
-  funcStatements: 40
-  lineLength: 120
+  fileLines: 250        # filet's own default: split the file
+  funcsPerFile: 8
+  funcLines: 30         # filet's own default
+  funcStatements: 25    # filet's own default
+  lineLength: 120       # lll default
   params: 5
   returns: 3
-  nesting: 5
-  complexity: 15
-  structFields: 15
-  interfaceMethods: 5
+  nesting: 4            # filet's own default
+  complexity: 10        # filet's own default
+  structFields: 12      # filet's own default
+  interfaceMethods: 4   # filet's own default
 
 architecture:
   # cmd/ holds the cobra command tree and main.go is the entry point, so
@@ -51,4 +51,10 @@ style:
   banInit: true
   banTrailingSpace: true
 
+disabled:
+  # gofmt/rustfmt/prettier owns line breaking; every survivor is a line no
+  # formatter could have wrapped. Flagging it is noise that teaches people to
+  # stop reading the output. Nothing else is disabled: a rule turned off here
+  # must be an argument, not a habit.
+  - gen.line.long
 failOn: error
