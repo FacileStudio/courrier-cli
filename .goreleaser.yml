@@ -44,8 +44,6 @@ homebrew_casks:
     commit_author:
       name: goreleaserbot
       email: bot@goreleaser.com
-    url:
-      verified: github.com/FacileStudio/
     # The binaries are unsigned, and a cask download carries the quarantine
     # attribute where a formula's did not. Without this the first run dies on
     # "cannot be opened because the developer cannot be verified".
