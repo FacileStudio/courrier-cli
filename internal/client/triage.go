@@ -10,11 +10,30 @@ import (
 	"strings"
 )
 
-// ErrUnsupported means the instance answered 404 on a route added with triage,
-// which is how a caller tells an older Courrier from a failing one.
-var ErrUnsupported = errors.New("this Courrier instance does not support triage; upgrade the server")
+// ErrUnsupported is matched by errors.Is against an UnsupportedError: the
+// instance lacks a route, which is how a caller tells an older Courrier from a
+// failing one.
+var ErrUnsupported = errors.New("this Courrier instance does not support this feature; upgrade the server")
 
-// TriageCounts tallies the whole filtered set by class, not only the page.
+// UnsupportedError names the feature an older instance lacks.
+type UnsupportedError struct{ Feature string }
+
+func (e *UnsupportedError) Error() string {
+	return "this Courrier instance does not support " + e.Feature + "; upgrade the server"
+}
+
+// Is makes an UnsupportedError match ErrUnsupported.
+func (e *UnsupportedError) Is(target error) bool { return target == ErrUnsupported }
+
+// notJSONError is a 2xx answer that is not JSON, such as the dashboard SPA fallback.
+type notJSONError struct{ url string }
+
+func (e *notJSONError) Error() string {
+	return e.url + " answered with something that is not JSON — check the URL points at a Courrier instance"
+}
+
+// TriageCounts tallies conversations by class. They follow unread, since and
+// account but not the class filter, and cover more than the page.
 type TriageCounts struct {
 	Known        int `json:"known"`
 	UnknownHuman int `json:"unknown_human"`
@@ -38,7 +57,7 @@ type TriageItem struct {
 }
 
 // Triage is one page of classified conversations across accounts. Raw holds
-// the response body untouched, so a caller can print exactly what the API sent.
+// the response body as received, so a caller can print what the API sent.
 type Triage struct {
 	GeneratedAt string          `json:"generated_at"`
 	Total       int             `json:"total"`
@@ -46,6 +65,7 @@ type Triage struct {
 	Items       []TriageItem    `json:"items"`
 	Page        int             `json:"page"`
 	Limit       int             `json:"limit"`
+	Truncated   bool            `json:"truncated"`
 	Raw         json.RawMessage `json:"-"`
 }
 
@@ -70,7 +90,7 @@ type Contact struct {
 }
 
 // ContactPage is one page of contacts, newest recipient first. Raw holds the
-// response body untouched.
+// response body as received.
 type ContactPage struct {
 	Contacts []Contact       `json:"contacts"`
 	Total    int             `json:"total"`
@@ -112,14 +132,18 @@ func (q ContactsQuery) values() url.Values {
 }
 
 // getRaw fetches a route that older instances lack, keeping the body for the
-// caller and mapping a 404 onto ErrUnsupported.
-func (c *Client) getRaw(ctx context.Context, path string, out any) (json.RawMessage, error) {
+// caller. An old server answers such a route with a plain-text 404 or a 200 of
+// HTML; both map onto an UnsupportedError. A JSON error envelope is a real API
+// answer, a wrong account id for one, and surfaces as itself.
+func (c *Client) getRaw(ctx context.Context, feature, path string, out any) (json.RawMessage, error) {
 	var raw json.RawMessage
-	if err := c.do(ctx, http.MethodGet, path, nil, &raw); err != nil {
-		var apiErr *Error
-		if errors.As(err, &apiErr) && apiErr.NotFound() {
-			return nil, ErrUnsupported
-		}
+	err := c.do(ctx, http.MethodGet, path, nil, &raw)
+	var apiErr *Error
+	var notJSON *notJSONError
+	if errors.As(err, &notJSON) || errors.As(err, &apiErr) && apiErr.NotFound() && apiErr.Code == "unknown" {
+		return nil, &UnsupportedError{Feature: feature}
+	}
+	if err != nil {
 		return nil, err
 	}
 	return raw, json.Unmarshal(raw, out)
@@ -128,7 +152,7 @@ func (c *Client) getRaw(ctx context.Context, path string, out any) (json.RawMess
 // Triage lists classified conversations across the user's accounts.
 func (c *Client) Triage(ctx context.Context, q TriageQuery) (Triage, error) {
 	var out Triage
-	raw, err := c.getRaw(ctx, withQuery("/api/mail/triage", q.values()), &out)
+	raw, err := c.getRaw(ctx, "triage", withQuery("/api/mail/triage", q.values()), &out)
 	out.Raw = raw
 	return out, err
 }
@@ -136,7 +160,7 @@ func (c *Client) Triage(ctx context.Context, q TriageQuery) (Triage, error) {
 // Contacts lists the addresses the user has written to, across accounts.
 func (c *Client) Contacts(ctx context.Context, q ContactsQuery) (ContactPage, error) {
 	var out ContactPage
-	raw, err := c.getRaw(ctx, withQuery("/api/mail/contacts", q.values()), &out)
+	raw, err := c.getRaw(ctx, "contacts", withQuery("/api/mail/contacts", q.values()), &out)
 	out.Raw = raw
 	return out, err
 }

@@ -9,6 +9,8 @@ import (
 	"github.com/FacileStudio/courrier-cli/internal/ui"
 )
 
+const truncatedNotice = "results truncated: the server only looked at the newest 5000 conversations"
+
 // renderTriage prints one line per conversation and a footer with the counts.
 func renderTriage(out client.Triage) {
 	if len(out.Items) == 0 {
@@ -26,6 +28,9 @@ func renderTriage(out client.Triage) {
 		ui.Table(header, rows)
 	}
 	ui.Plain("%s", ui.Dim(triageFooter(out)))
+	if out.Truncated {
+		ui.Warn("%s", truncatedNotice)
+	}
 }
 
 func triageRow(item client.TriageItem, withAccount bool) []string {
@@ -56,8 +61,8 @@ func manyAccounts(items []client.TriageItem) bool {
 	return false
 }
 
-// triageFooter states the counts of the whole filtered set and, when the page
-// does not hold all of it, which page this is.
+// triageFooter states the total after --class, the counts that ignore --class
+// and, when the page does not hold all of it, which page this is.
 func triageFooter(out client.Triage) string {
 	footer := fmt.Sprintf("%d conversations  ·  %d known  ·  %d unknown_human  ·  %d bulk",
 		out.Total, out.Counts.Known, out.Counts.UnknownHuman, out.Counts.Bulk)

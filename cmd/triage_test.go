@@ -1,6 +1,9 @@
 package cmd
 
 import (
+	"bytes"
+	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -98,16 +101,20 @@ func TestTriageJSONIsTheAPIBody(t *testing.T) {
 	if err != nil {
 		t.Fatalf("runTriage: %v", err)
 	}
-	if out != string(golden) {
-		t.Errorf("stdout differs from the golden document:\n%s", out)
+	var want bytes.Buffer
+	if err := json.Indent(&want, bytes.TrimSpace(golden), "", "  "); err != nil {
+		t.Fatal(err)
+	}
+	if out != want.String()+"\n" {
+		t.Errorf("stdout is not the golden document re-indented:\n%s", out)
 	}
 }
 
 func TestTriageOnAnOldServerIsUnsupported(t *testing.T) {
-	triageInstance(t, http.StatusNotFound, `{"error":{"code":"not_found","message":"no route"}}`)
+	triageInstance(t, http.StatusNotFound, "404 page not found\n")
 
 	out, err := captureStdout(t, runTriage)
-	if err != client.ErrUnsupported {
+	if !errors.Is(err, client.ErrUnsupported) {
 		t.Fatalf("err = %v, want ErrUnsupported", err)
 	}
 	if out != "" {
@@ -123,5 +130,11 @@ func TestTriageFooterCarriesTheCounts(t *testing.T) {
 		if !strings.Contains(footer, want) {
 			t.Errorf("footer %q lacks %q", footer, want)
 		}
+	}
+}
+
+func TestTriageFooterAndTruncationNotice(t *testing.T) {
+	if !strings.Contains(truncatedNotice, "the server only looked at the newest 5000 conversations") {
+		t.Errorf("notice = %q", truncatedNotice)
 	}
 }

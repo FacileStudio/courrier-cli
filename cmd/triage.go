@@ -38,12 +38,14 @@ var triageCmd = &cobra.Command{
 
 With no --account and no default account, every account is covered. With a
 default account set, pass --all to cover them all. The counts in the footer
-cover the whole filtered set, not only the page on screen.
+follow --unread, --since and --account but not --class, so they cover more than the
+page on screen. The total and the rows follow --class.
 
 --since takes a duration (30m, 2h, 1d, 1w) or an RFC 3339 time. --json prints the
 API response and nothing else. An instance without triage exits 1.`,
-	Args: cobra.NoArgs,
-	RunE: func(cmd *cobra.Command, args []string) error { return runTriage() },
+	Args:    cobra.NoArgs,
+	PreRunE: usage(checkTriageFlags),
+	RunE:    func(cmd *cobra.Command, args []string) error { return runTriage() },
 }
 
 // init registers the triage flags.

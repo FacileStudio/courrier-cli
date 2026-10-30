@@ -30,6 +30,11 @@ var sinceCases = []sinceCase{
 	{raw: "2y", bad: true},
 	{raw: "yesterday", bad: true},
 	{raw: "2026-10-29", bad: true},
+	{raw: " 2h ", want: sinceNow.Add(-2 * time.Hour)},
+	{raw: "3650d", want: sinceNow.Add(-3650 * 24 * time.Hour)},
+	{raw: "3651d", bad: true},
+	{raw: "99999999999w", bad: true},
+	{raw: "100001h", bad: true},
 }
 
 func TestParseSinceGrammar(t *testing.T) {
@@ -55,14 +60,14 @@ func TestApplySinceFiltersOnDate(t *testing.T) {
 		t.Fatalf("kept %+v", page.Emails)
 	}
 	if page.Total != 2 {
-		t.Errorf("Total = %d, want 2: nothing newer can follow a dropped row", page.Total)
+		t.Errorf("Total = %d, want 2: the filtered count of the page", page.Total)
 	}
 }
 
-func TestApplySinceKeepsTotalWhenNothingDropped(t *testing.T) {
+func TestApplySinceNeverClaimsOlderMail(t *testing.T) {
 	page := client.EmailPage{Total: 90, Page: 1, Limit: 50, Emails: []client.Email{{ID: 1, Date: "2026-10-30T11:00:00Z"}}}
 	applySince(&page, time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC))
-	if page.Total != 90 {
-		t.Errorf("Total = %d, want 90", page.Total)
+	if page.Total != 1 {
+		t.Errorf("Total = %d, want 1: the server total counts older mail", page.Total)
 	}
 }

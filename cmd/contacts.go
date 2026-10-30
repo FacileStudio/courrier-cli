@@ -24,8 +24,9 @@ var contactsCmd = &cobra.Command{
 
 These are the people triage calls known. With no --account and no default
 account, every account is covered; with a default set, pass --all.`,
-	Args: cobra.NoArgs,
-	RunE: func(cmd *cobra.Command, args []string) error { return runContacts() },
+	Args:    cobra.NoArgs,
+	PreRunE: usage(checkContactsFlags),
+	RunE:    func(cmd *cobra.Command, args []string) error { return runContacts() },
 }
 
 // init registers the contacts flags.

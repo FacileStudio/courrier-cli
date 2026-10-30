@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/FacileStudio/courrier-cli/internal/client"
@@ -18,12 +19,15 @@ var sinceUnits = map[string]time.Duration{
 	"w": 7 * 24 * time.Hour,
 }
 
+var sinceBounds = map[string]int{"m": 100000, "h": 100000, "d": 3650, "w": 3650}
+
 // parseSince turns the --since grammar into a cutoff: a duration counted back
 // from now (30m, 2h, 1d, 1w) or an RFC 3339 timestamp.
 func parseSince(raw string, now time.Time) (time.Time, error) {
+	raw = strings.TrimSpace(raw)
 	if match := sinceDuration.FindStringSubmatch(raw); match != nil {
 		count, err := strconv.Atoi(match[1])
-		if err == nil {
+		if err == nil && count <= sinceBounds[match[2]] {
 			return now.Add(-time.Duration(count) * sinceUnits[match[2]]), nil
 		}
 	}
@@ -34,9 +38,10 @@ func parseSince(raw string, now time.Time) (time.Time, error) {
 }
 
 // applySince drops the rows older than the cutoff, client-side, from a listing
-// the server cannot filter by date. Rows come newest first, so once any row is
-// dropped no later page holds a newer one and the total is closed off there.
-// A row whose date cannot be read is kept rather than hidden.
+// the server cannot filter by date, and sets Total to the rows kept on this
+// page. The server's total counts older mail too, so it is not claimed; a total
+// no larger than the page is also what suppresses the "more pages" hint. A row
+// whose date cannot be read is kept rather than hidden.
 func applySince(page *client.EmailPage, cutoff time.Time) {
 	kept := make([]client.Email, 0, len(page.Emails))
 	for _, email := range page.Emails {
@@ -44,8 +49,6 @@ func applySince(page *client.EmailPage, cutoff time.Time) {
 			kept = append(kept, email)
 		}
 	}
-	if len(kept) < len(page.Emails) {
-		page.Total = (max(page.Page, 1)-1)*max(page.Limit, len(page.Emails)) + len(kept)
-	}
 	page.Emails = kept
+	page.Total = len(kept)
 }

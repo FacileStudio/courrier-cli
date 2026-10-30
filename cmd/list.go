@@ -46,7 +46,8 @@ holds and email_ids names every one of them, so a row with a count of 4 is four
 messages under one subject. Expand one with courrier read <thread-id>.
 
 Equivalent to courrier list inbox.`,
-	Args: cobra.NoArgs,
+	Args:    cobra.NoArgs,
+	PreRunE: usage(checkListFlags),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return runList("inbox")
 	},
@@ -65,7 +66,8 @@ next to its id.
 A row is a conversation, not a message. message_count says how many messages it
 holds and email_ids names every one of them, so a row with a count of 4 is four
 messages under one subject. Expand one with courrier read <thread-id>.`,
-	Args: cobra.ExactArgs(1),
+	Args:    cobra.ExactArgs(1),
+	PreRunE: usage(checkListFlags),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return runList(args[0])
 	},

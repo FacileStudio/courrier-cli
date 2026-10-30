@@ -75,12 +75,12 @@ courrier keys revoke <id> [--yes]         Revoke an API key by id
   account.** One call covers every account and each row carries a `class`:
   `known` (a person the user has written to), `unknown_human` (personal, no history)
   or `bulk` (automated or marketing, with a `reason`). Skip `bulk` rows unless asked;
-  `counts` covers the whole filtered set, so "15 automated mails ignored" needs no
-  paging. `--all` is implied when no default account is set; with one, pass it.
+  `counts` follows `--unread`, `--since` and `--account` but not `--class`; `total` and
+  `items` follow `--class`. "15 automated mails ignored" needs no paging, but check `truncated`: when true the server only looked at the newest 5000 conversations. `--all` is implied when no default account is set; with one, pass it.
 - **`--since` takes `30m`, `2h`, `1d`, `1w` or an RFC 3339 time.** On `inbox` and `list`
-  it filters on the returned `date` after the fetch, so a page can come back short.
+  it filters on the returned `date` after the fetch, so a page can come back short and `total` counts only the rows kept on that page.
 - **`triage` and `contacts` need a recent server.** On an older one they exit 1 with
-  "this Courrier instance does not support triage; upgrade the server". Fall back to
+  "this Courrier instance does not support triage (or contacts); upgrade the server". Fall back to
   `courrier inbox` per account.
 - **Folder listings return collapsed conversations, not messages.** A row is a thread;
   `message_count` says how many messages it holds. Expand it with `courrier read <thread-id>`.

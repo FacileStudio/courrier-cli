@@ -78,11 +78,14 @@ courrier triage --all --unread --json | jq '.counts'
 ```
 
 `triage` tags each conversation `known`, `unknown_human` or `bulk`, and its footer counts
-the whole filtered set, not only the page. Without `--account` and without a default
+follow `--unread`, `--since` and `--account` but not `--class`, and cover more than the
+page; the total and the rows follow `--class`. Without `--account` and without a default
 account it covers every account; with a default set, pass `--all`. `--since` takes `30m`,
 `2h`, `1d`, `1w` or an RFC 3339 time; on `inbox` and `list` it filters on each row's
-`date` after the fetch. `triage` and `contacts` need a recent server: an older one makes
-them exit 1 with "this Courrier instance does not support triage; upgrade the server".
+`date` after the fetch, and `total` then counts the rows kept on that page only.
+`triage` and `contacts` need a recent server: an older one makes them exit 1 with
+"this Courrier instance does not support triage; upgrade the server", or "contacts" for
+the other.
 
 ## Configuration
 

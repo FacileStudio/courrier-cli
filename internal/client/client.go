@@ -112,7 +112,7 @@ func (c *Client) send(request *http.Request, out any) error {
 		return nil
 	}
 	if err := json.Unmarshal(raw, out); err != nil {
-		return fmt.Errorf("%s answered with something that is not JSON — check the URL points at a Courrier instance", request.URL)
+		return &notJSONError{url: request.URL.String()}
 	}
 	return nil
 }

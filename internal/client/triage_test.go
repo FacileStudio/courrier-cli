@@ -15,7 +15,7 @@ const triageBody = `{"generated_at":"2026-10-30T10:00:00Z","total":18,"counts":{
 	`"items":[{"account_id":1,"account":"yann@facile.studio","thread_id":"<a@b>","email_id":1880,` +
 	`"subject":"Railway security update","from_address":"hello@notify.railway.app","from_name":"Railway",` +
 	`"date":"2026-10-23T20:41:41Z","message_count":1,"unread_count":1,"class":"bulk","reason":"list-unsubscribe"}],` +
-	`"page":1,"limit":50}`
+	`"page":1,"limit":50,"truncated":true}`
 
 func fixture(t *testing.T, status int, body string, got *url.URL) *Client {
 	t.Helper()
@@ -52,6 +52,9 @@ func TestTriageQueryAndDecoding(t *testing.T) {
 	if item.Class != "bulk" || item.Reason != "list-unsubscribe" || item.EmailID != 1880 || item.ThreadID != "<a@b>" {
 		t.Errorf("item decoded as %+v", item)
 	}
+	if !out.Truncated {
+		t.Error("truncated not decoded")
+	}
 	if string(out.Raw) != triageBody {
 		t.Error("Raw is not the response body")
 	}
@@ -85,8 +88,21 @@ func TestContactsQueryAndDecoding(t *testing.T) {
 	}
 }
 
-func TestNotFoundMapsToUnsupported(t *testing.T) {
-	api := fixture(t, http.StatusNotFound, `{"error":{"code":"not_found","message":"no route"}}`, nil)
+func TestPlainTextNotFoundMapsToUnsupported(t *testing.T) {
+	api := fixture(t, http.StatusNotFound, "404 page not found\n", nil)
+
+	_, err := api.Triage(context.Background(), TriageQuery{})
+	if !errors.Is(err, ErrUnsupported) || !strings.Contains(err.Error(), "support triage; upgrade the server") {
+		t.Errorf("Triage err = %v, want unsupported naming triage", err)
+	}
+	_, err = api.Contacts(context.Background(), ContactsQuery{})
+	if !errors.Is(err, ErrUnsupported) || !strings.Contains(err.Error(), "support contacts; upgrade the server") {
+		t.Errorf("Contacts err = %v, want unsupported naming contacts", err)
+	}
+}
+
+func TestHTMLAnswerMapsToUnsupported(t *testing.T) {
+	api := fixture(t, http.StatusOK, "<!doctype html><html></html>", nil)
 
 	if _, err := api.Triage(context.Background(), TriageQuery{}); !errors.Is(err, ErrUnsupported) {
 		t.Errorf("Triage err = %v, want ErrUnsupported", err)
@@ -94,8 +110,15 @@ func TestNotFoundMapsToUnsupported(t *testing.T) {
 	if _, err := api.Contacts(context.Background(), ContactsQuery{}); !errors.Is(err, ErrUnsupported) {
 		t.Errorf("Contacts err = %v, want ErrUnsupported", err)
 	}
-	if !strings.Contains(ErrUnsupported.Error(), "upgrade the server") {
-		t.Errorf("message = %q", ErrUnsupported)
+}
+
+func TestJSONNotFoundSurfacesAsAPIError(t *testing.T) {
+	api := fixture(t, http.StatusNotFound, `{"error":{"code":"not_found","message":"no such account"}}`, nil)
+
+	_, err := api.Contacts(context.Background(), ContactsQuery{Account: 9})
+	var apiErr *Error
+	if errors.Is(err, ErrUnsupported) || !errors.As(err, &apiErr) || apiErr.Code != "not_found" {
+		t.Errorf("err = %v, want the not_found *Error", err)
 	}
 }
 
