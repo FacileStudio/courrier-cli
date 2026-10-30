@@ -10,6 +10,8 @@ record what shipped rather than what was written down at the time.
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-30
+
 ### Added
 
 - `courrier triage` lists conversations across accounts, each classified `known`,
@@ -19,6 +21,12 @@ record what shipped rather than what was written down at the time.
 - `--since` on `courrier inbox` and `courrier list`, filtering on each row's `date`.
 - Client methods `Triage` and `Contacts`, and `ErrUnsupported` for an instance that
   answers a plain-text 404 or non-JSON on them.
+
+### Fixed
+
+- Invalid `--since`, `--class`, `--page`, `--limit` and `--all` with `--account` exit 2 before any login check.
+- A wrong account id on `triage` or `contacts` shows the server's error, not "upgrade the server".
+- `triage` prints a notice on stderr when the server truncated its results.
 
 ## [0.3.0] - 2026-09-01
 
