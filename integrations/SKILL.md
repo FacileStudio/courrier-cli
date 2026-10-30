@@ -32,8 +32,11 @@ courrier accounts               List mail accounts; marks the default
 
 ### Reading
 ```
-courrier inbox [--unread] [--limit 50]    Collapsed conversations, newest first
-courrier list <folder-type> [filters]     inbox|sent|drafts|trash|junk|archive
+courrier triage [--all|--account N] [--unread] [--class known,unknown_human,bulk]
+                [--since 2h] [--limit 50] [--page 1]    Classified conversations across accounts
+courrier contacts [--all|--account N] [--limit 50]      Addresses the user has written to
+courrier inbox [--unread] [--since 2h] [--limit 50]     Collapsed conversations, newest first
+courrier list <folder-type> [--since 1d] [filters]      inbox|sent|drafts|trash|junk|archive
 courrier folders                          Folder list with unread and total counts
 courrier read <thread-id>                 Every message in one conversation
 courrier read --id <email-id>             One message by id
@@ -68,6 +71,17 @@ courrier keys revoke <id> [--yes]         Revoke an API key by id
   once, or set `COURRIER_TOKEN` in a headless or CI context.
 - **Use `--json` for anything you are going to parse.** Human output is a table and
   its columns are not a contract.
+- **Prefer `courrier triage --all --unread --json` over looping `courrier inbox` per
+  account.** One call covers every account and each row carries a `class`:
+  `known` (a person the user has written to), `unknown_human` (personal, no history)
+  or `bulk` (automated or marketing, with a `reason`). Skip `bulk` rows unless asked;
+  `counts` covers the whole filtered set, so "15 automated mails ignored" needs no
+  paging. `--all` is implied when no default account is set; with one, pass it.
+- **`--since` takes `30m`, `2h`, `1d`, `1w` or an RFC 3339 time.** On `inbox` and `list`
+  it filters on the returned `date` after the fetch, so a page can come back short.
+- **`triage` and `contacts` need a recent server.** On an older one they exit 1 with
+  "this Courrier instance does not support triage; upgrade the server". Fall back to
+  `courrier inbox` per account.
 - **Folder listings return collapsed conversations, not messages.** A row is a thread;
   `message_count` says how many messages it holds. Expand it with `courrier read <thread-id>`.
 - **`courrier list` takes a folder *type*** (`inbox`, `sent`, …), never a folder id.

@@ -1,0 +1,30 @@
+{
+  "generated_at": "2026-10-30T10:00:00Z",
+  "total": 18,
+  "counts": {
+    "known": 2,
+    "unknown_human": 1,
+    "bulk": 15
+  },
+  "items": [
+    {
+      "account_id": 1,
+      "account": "yann@facile.studio",
+      "thread_id": "\u003cmsg-1@notify.railway.app\u003e",
+      "email_id": 1880,
+      "subject": "Railway security update",
+      "from_address": "hello@notify.railway.app",
+      "from_name": "Railway",
+      "date": "2026-10-23T20:41:41Z",
+      "message_count": 1,
+      "unread_count": 1,
+      "class": "bulk",
+      "reason": "list-unsubscribe",
+      "future_field": {
+        "kept": true
+      }
+    }
+  ],
+  "page": 1,
+  "limit": 50
+}

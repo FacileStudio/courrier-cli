@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 
@@ -30,6 +31,7 @@ var (
 	flagListUnread bool
 	flagListLimit  int
 	flagListPage   int
+	flagListSince  string
 )
 
 // inboxCmd is the shorthand a mail client is expected to have: the inbox
@@ -76,6 +78,7 @@ func init() {
 		command.Flags().BoolVar(&flagListUnread, "unread", false, "Show only conversations holding unread mail")
 		command.Flags().IntVar(&flagListLimit, "limit", 50, "Conversations per page, at most 100")
 		command.Flags().IntVar(&flagListPage, "page", 1, "Page to show, counting from 1")
+		command.Flags().StringVar(&flagListSince, "since", "", "Only mail newer than 2h, 1d or an RFC 3339 time")
 	}
 }
 
@@ -86,25 +89,20 @@ func runList(folderType string) error {
 		return fmt.Errorf("unknown folder type %q — use one of %s", folderType, strings.Join(folderTypes, ", "))
 	}
 
-	ctx, stop := signalContext()
-	defer stop()
-
-	api, cfg, err := session()
+	cutoff, err := listCutoff()
 	if err != nil {
 		return err
 	}
-	accountID, err := resolveAccount(ctx, api, cfg)
+
+	ctx, stop := signalContext()
+	defer stop()
+
+	page, err := fetchList(ctx, folderType)
 	if err != nil {
 		return wrapInterrupt(ctx, err)
 	}
-
-	page, err := api.ListEmails(ctx, accountID, folderType, client.ListOptions{
-		Page:       flagListPage,
-		Limit:      clampLimit(flagListLimit),
-		UnreadOnly: flagListUnread,
-	})
-	if err != nil {
-		return wrapInterrupt(ctx, err)
+	if !cutoff.IsZero() {
+		applySince(&page, cutoff)
 	}
 	if page.Emails == nil {
 		page.Emails = []client.Email{}
@@ -117,6 +115,31 @@ func runList(folderType string) error {
 	renderEmailRows(page.Emails)
 	renderPageSummary(page)
 	return nil
+}
+
+// listCutoff parses --since, returning the zero time when it is not set.
+func listCutoff() (time.Time, error) {
+	if flagListSince == "" {
+		return time.Time{}, nil
+	}
+	return parseSince(flagListSince, time.Now())
+}
+
+// fetchList resolves the account and loads the requested page of the folder.
+func fetchList(ctx context.Context, folderType string) (client.EmailPage, error) {
+	api, cfg, err := session()
+	if err != nil {
+		return client.EmailPage{}, err
+	}
+	accountID, err := resolveAccount(ctx, api, cfg)
+	if err != nil {
+		return client.EmailPage{}, err
+	}
+	return api.ListEmails(ctx, accountID, folderType, client.ListOptions{
+		Page:       flagListPage,
+		Limit:      clampLimit(flagListLimit),
+		UnreadOnly: flagListUnread,
+	})
 }
 
 // clampLimit holds a requested page size under the server's ceiling and says so

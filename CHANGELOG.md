@@ -10,6 +10,16 @@ record what shipped rather than what was written down at the time.
 
 ## [Unreleased]
 
+### Added
+
+- `courrier triage` lists conversations across accounts, each classified `known`,
+  `unknown_human` or `bulk`, with `--account`, `--all`, `--unread`, `--class`, `--since`,
+  `--limit` and `--page`. `--json` prints the API response unchanged.
+- `courrier contacts` lists the addresses you have written to.
+- `--since` on `courrier inbox` and `courrier list`, filtering on each row's `date`.
+- Client methods `Triage` and `Contacts`, and `ErrUnsupported` for an instance that
+  answers 404 on them.
+
 ## [0.3.0] - 2026-09-01
 
 ### Added

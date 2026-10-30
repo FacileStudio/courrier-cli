@@ -61,6 +61,10 @@ courrier accounts                             # mail accounts, default marked
 courrier sync                                 # pull new mail from IMAP
 courrier inbox --unread                       # unread conversations
 courrier list archive --limit 20              # any folder type
+courrier inbox --since 2h                     # mail from the last two hours
+courrier triage --all --unread                # unread mail of every account, classified
+courrier triage --class known,unknown_human   # skip automated mail
+courrier contacts --all                       # addresses you have written to
 courrier read '<CAJ8f=abc@mail.example.com>'  # a whole conversation
 courrier read --id 4812                       # one message
 courrier search "invoice" --limit 10
@@ -70,7 +74,15 @@ courrier keys list
 courrier keys create --app myapp
 courrier keys revoke 1
 courrier inbox --json | jq '.emails[].id'
+courrier triage --all --unread --json | jq '.counts'
 ```
+
+`triage` tags each conversation `known`, `unknown_human` or `bulk`, and its footer counts
+the whole filtered set, not only the page. Without `--account` and without a default
+account it covers every account; with a default set, pass `--all`. `--since` takes `30m`,
+`2h`, `1d`, `1w` or an RFC 3339 time; on `inbox` and `list` it filters on each row's
+`date` after the fetch. `triage` and `contacts` need a recent server: an older one makes
+them exit 1 with "this Courrier instance does not support triage; upgrade the server".
 
 ## Configuration
 

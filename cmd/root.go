@@ -90,6 +90,8 @@ func Execute() {
 		markCmd,
 		sendCmd,
 		keysCmd,
+		triageCmd,
+		contactsCmd,
 	)
 
 	err := rootCmd.Execute()
@@ -159,11 +161,9 @@ func session() (*client.Client, config.Config, error) {
 	return api, cfg, nil
 }
 
-// resolveAccount decides which mail account a command acts on: the --account
-// flag, then the stored default, then the only account there is. It refuses to
-// guess between several, because sending from the wrong address is not a
-// mistake a retry undoes.
-func resolveAccount(ctx context.Context, api *client.Client, cfg config.Config) (int64, error) {
+// configuredAccount returns the account a flag, the environment or the stored
+// default names, in that order, or zero when none of them does.
+func configuredAccount(cfg config.Config) (int64, error) {
 	if flagAccount != 0 {
 		return flagAccount, nil
 	}
@@ -174,8 +174,16 @@ func resolveAccount(ctx context.Context, api *client.Client, cfg config.Config) 
 		}
 		return parsed, nil
 	}
-	if cfg.DefaultAccount != 0 {
-		return cfg.DefaultAccount, nil
+	return cfg.DefaultAccount, nil
+}
+
+// resolveAccount decides which mail account a command acts on: the --account
+// flag, then the stored default, then the only account there is. It refuses to
+// guess between several, because sending from the wrong address is not a
+// mistake a retry undoes.
+func resolveAccount(ctx context.Context, api *client.Client, cfg config.Config) (int64, error) {
+	if id, err := configuredAccount(cfg); id != 0 || err != nil {
+		return id, err
 	}
 
 	accounts, err := api.Accounts(ctx)
