@@ -92,6 +92,11 @@ func Execute() {
 		keysCmd,
 		triageCmd,
 		contactsCmd,
+		draftCmd,
+		replyCmd,
+		forwardCmd,
+		attachmentCmd,
+		templateCmd,
 	)
 
 	err := rootCmd.Execute()

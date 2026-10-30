@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/spf13/cobra"
 
 	"github.com/FacileStudio/courrier-cli/internal/client"
@@ -48,4 +50,59 @@ command with --account <id>, or for a whole shell with COURRIER_ACCOUNT.`,
 		renderAccounts(accounts, current)
 		return nil
 	},
+}
+
+var accountsCheckCmd = &cobra.Command{
+	Use:   "check",
+	Short: "Check the account's IMAP and SMTP credentials",
+	Long: `Sign in to IMAP and SMTP with the stored passwords and disconnect again.
+
+Nothing is read or written. Both protocols are always tried and reported apart,
+so "IMAP works, SMTP does not" is visible. A failed login exits 1.`,
+	Args: cobra.NoArgs,
+	RunE: func(cmd *cobra.Command, args []string) error { return runAccountsCheck() },
+}
+
+// init registers the check subcommand.
+func init() {
+	accountsCmd.AddCommand(accountsCheckCmd)
+}
+
+// runAccountsCheck probes the resolved account and fails when a leg fails.
+func runAccountsCheck() error {
+	ctx, stop := signalContext()
+	defer stop()
+
+	api, accountID, err := openAccount(ctx)
+	if err != nil {
+		return err
+	}
+	result, err := api.CheckAccount(ctx, accountID)
+	if err != nil {
+		return wrapInterrupt(ctx, err)
+	}
+	if flagJSON {
+		if err := ui.JSON(result); err != nil {
+			return err
+		}
+	} else {
+		reportLeg("imap", result.IMAP)
+		reportLeg("smtp", result.SMTP)
+	}
+	if (result.IMAP.Configured && !result.IMAP.OK) || (result.SMTP.Configured && !result.SMTP.OK) {
+		return fmt.Errorf("account %d failed its connection check", accountID)
+	}
+	return nil
+}
+
+// reportLeg prints one protocol's outcome.
+func reportLeg(name string, leg client.CheckLeg) {
+	switch {
+	case !leg.Configured:
+		ui.Plain("%s not configured", name)
+	case leg.OK:
+		ui.Success("%s ok", name)
+	default:
+		ui.Warn("%s failed — %s", name, leg.Error)
+	}
 }

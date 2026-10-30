@@ -35,6 +35,9 @@ var (
 	flagSendBodyFile  string
 	flagSendAttach    []string
 	flagSendInReplyTo string
+	flagSendHTML      string
+	flagSendHTMLFile  string
+	flagSendRefs      []string
 	flagSendYes       bool
 )
 
@@ -73,6 +76,9 @@ func init() {
 	sendCmd.Flags().StringVar(&flagSendBodyFile, "body-file", "", "Read the message body from this file, or - for stdin")
 	sendCmd.Flags().StringArrayVar(&flagSendAttach, "attach", nil, "Attach this local file, repeatable")
 	sendCmd.Flags().StringVar(&flagSendInReplyTo, "in-reply-to", "", "Message-ID this message replies to")
+	sendCmd.Flags().StringVar(&flagSendHTML, "html", "", "Message body as HTML, sent beside the plain text")
+	sendCmd.Flags().StringVar(&flagSendHTMLFile, "html-file", "", "Read the HTML body from this file, or - for stdin")
+	sendCmd.Flags().StringSliceVar(&flagSendRefs, "references", nil, "Message-ID in the thread, repeatable")
 	sendCmd.Flags().BoolVar(&flagSendYes, "yes", false, "Answer the confirmation with yes")
 
 	_ = sendCmd.MarkFlagRequired("to")
@@ -108,7 +114,11 @@ func runSend(cmd *cobra.Command, args []string) error {
 	if err := validateRecipients(); err != nil {
 		return err
 	}
-	attachments, err := checkAttachments(flagSendAttach, body)
+	htmlBody, err := resolveSendHTML(cmd)
+	if err != nil {
+		return err
+	}
+	attachments, err := checkAttachments(flagSendAttach, body+htmlBody)
 	if err != nil {
 		return err
 	}
@@ -132,7 +142,9 @@ func runSend(cmd *cobra.Command, args []string) error {
 		Cc:          flagSendCc,
 		Subject:     flagSendSubject,
 		Body:        body,
+		BodyHTML:    htmlBody,
 		InReplyTo:   flagSendInReplyTo,
+		References:  flagSendRefs,
 		Attachments: flagSendAttach,
 	})
 	if err != nil {
@@ -163,8 +175,13 @@ func runSend(cmd *cobra.Command, args []string) error {
 func resolveBody(cmd *cobra.Command) (string, bool, error) {
 	hasBody := cmd.Flags().Changed("body")
 	hasFile := cmd.Flags().Changed("body-file")
+	hasHTML := cmd.Flags().Changed("html") || cmd.Flags().Changed("html-file")
 
 	switch {
+	case hasFile && flagSendBodyFile == "-" && flagSendHTMLFile == "-":
+		return "", false, errors.New("only one body can come from stdin — read the other from a file")
+	case hasHTML && !hasBody && !hasFile:
+		return "", false, nil
 	case hasBody && hasFile:
 		return "", false, errors.New("--body and --body-file cannot be combined — pass one or the other")
 	case hasBody:
@@ -181,6 +198,17 @@ func resolveBody(cmd *cobra.Command) (string, bool, error) {
 		return readStdinBody()
 	}
 	return "", false, errors.New("no message body — pass --body, --body-file <path>, or pipe the text into stdin")
+}
+
+// resolveSendHTML reads the HTML body from --html or --html-file, or returns
+// empty when neither is given.
+func resolveSendHTML(cmd *cobra.Command) (string, error) {
+	picker := composeFlags{usedStdin: flagSendBodyFile == "-"}
+	value, err := picker.pick(cmd, "html", "html-file", flagSendHTML, flagSendHTMLFile)
+	if err != nil || value == nil {
+		return "", err
+	}
+	return *value, nil
 }
 
 // readStdinBody reads all of stdin as the message body.

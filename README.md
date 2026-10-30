@@ -12,7 +12,11 @@ the dashboard. Authenticates through the same porte SSO flow the browser uses.
 - `courrier inbox` — collapsed conversations, newest first, with unread and star markers
 - `courrier read` — every message in one thread, plain text, no HTML renderer needed
 - `courrier search` — trigram search over subject, sender and body
-- `courrier send` — to, cc, subject, body from a string, a file or stdin, with attachments
+- `courrier send` — to, cc, subject, plain or HTML body from a string, a file or stdin, references, attachments
+- `courrier reply`, `courrier forward` — thread-aware reply (optionally to all) and forward with the original attachments
+- `courrier draft` — create, update and delete drafts
+- `courrier attachment` — download an attachment
+- `courrier template` — list, show, create, update and delete templates
 - `courrier mark` — read, unread, star, archive and delete, up to 200 messages at a time
 - `courrier keys` — list, create, and revoke API keys for applications
 - `--json` on every command carrying data
@@ -69,6 +73,18 @@ courrier read '<CAJ8f=abc@mail.example.com>'  # a whole conversation
 courrier read --id 4812                       # one message
 courrier search "invoice" --limit 10
 courrier send --to a@b.com --subject "Re: quote" --body-file draft.txt
+courrier send --to a@b.com --subject "Hi" --html-file mail.html --body "Plain fallback"
+courrier reply 4812 --body "Thanks" --all --yes
+courrier forward 4812 --to c@d.com --body "FYI" --yes
+courrier draft create --to a@b.com --subject "Later" --body "..."
+courrier draft update 2089 --subject "Sooner"
+courrier draft delete 2089 --yes
+courrier attachment 4812 77 -o invoice.pdf
+courrier template create --name Intro --subject "Hello" --body "..."
+courrier template update 3 --html-file intro.html
+courrier template delete 3 --yes
+courrier contacts --query ann --account 2
+courrier accounts check --account 2
 courrier mark 4812 4813 --read
 courrier keys list
 courrier keys create --app myapp
@@ -86,6 +102,10 @@ account it covers every account; with a default set, pass `--all`. `--since` tak
 `triage` and `contacts` need a recent server: an older one makes them exit 1 with
 "this Courrier instance does not support triage; upgrade the server", or "contacts" for
 the other.
+
+`draft update` saves a new draft and deletes the old one, so the id changes. Drafts carry
+no attachments. The instance has no Bcc field, no move-to-folder call and no folder
+management, so the CLI has none either.
 
 ## Configuration
 

@@ -84,6 +84,8 @@ type Email struct {
 	Attachments    []Attachment `json:"attachments,omitempty"`
 	InReplyTo      string       `json:"in_reply_to,omitempty"`
 	References     string       `json:"references,omitempty"`
+	Category       string       `json:"category,omitempty"`
+	BulkReason     string       `json:"bulk_reason,omitempty"`
 	MessageCount   int          `json:"message_count,omitempty"`
 	UnreadCount    int          `json:"unread_count,omitempty"`
 	EmailIDs       []int64      `json:"email_ids,omitempty"`

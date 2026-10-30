@@ -45,7 +45,17 @@ courrier search <query> [--limit 30]      Subject, sender and body
 
 ### Writing
 ```
-courrier send --to a@b.c --subject "..." [--body "..." | --body-file -] [--cc x@y.z] [--attach path]
+courrier send --to a@b.c --subject "..." [--body "..." | --body-file -] [--html "..." | --html-file path]
+              [--cc x@y.z] [--references <id>] [--in-reply-to <id>] [--attach path] --yes
+courrier reply <email-id> --body "..." [--all] [--html ...] [--to/--cc override] [--attach path] --yes
+courrier forward <email-id> --to a@b.c [--body "note"] [--no-attachments] --yes
+courrier draft create [--to --cc --subject --body|--body-file --html|--html-file --in-reply-to --references]
+courrier draft update <id> [same flags; omitted fields are kept; the id changes]
+courrier draft delete <id> --yes
+courrier attachment <email-id> <attachment-id> [-o path|-] [--force]
+courrier template list|show <id>|create|update <id>|delete <id> --yes   (--name --subject --body --html --space)
+courrier contacts --query <text>          Autocomplete addresses on one account
+courrier accounts check                   Probe IMAP and SMTP credentials
 courrier mark <ids...> --read|--unread|--star|--unstar|--archive|--delete
 courrier sync [--folder <id>]             Pull new mail from IMAP
 ```
@@ -85,6 +95,11 @@ courrier keys revoke <id> [--yes]         Revoke an API key by id
 - **Folder listings return collapsed conversations, not messages.** A row is a thread;
   `message_count` says how many messages it holds. Expand it with `courrier read <thread-id>`.
 - **`courrier list` takes a folder *type*** (`inbox`, `sent`, …), never a folder id.
+- **There is no Bcc, no move-to-folder and no folder management.** The instance exposes
+  none of them. Archive and delete go through `mark`.
+- **Drafts take no attachments and cannot be edited in place**; `draft update` re-creates
+  the draft under a new id. Read drafts with `courrier list drafts` and `courrier read --id`.
+- **Attachment ids** are in `courrier read --id <email-id> --json`, under `attachments`.
 - **Ids for `mark` come from a listing.** `courrier inbox --json | jq '.emails[].id'`.
 - **`mark` takes at most 200 ids** in one call; the instance refuses more.
 - **Never send mail without showing the user the recipient, subject and body first**,

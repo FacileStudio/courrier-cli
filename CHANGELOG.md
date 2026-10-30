@@ -10,6 +10,22 @@ record what shipped rather than what was written down at the time.
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-30
+
+### Added
+
+- `courrier send --html`, `--html-file` and `--references`: an HTML body beside the plain text,
+  and thread references.
+- `courrier reply <id>` with `--all`: sets In-Reply-To and References, prefixes `Re: `, quotes
+  the original.
+- `courrier forward <id>`: prefixes `Fwd: `, includes the original headers and, unless
+  `--no-attachments`, its attachments.
+- `courrier draft create|update|delete`. `update` saves a new draft and deletes the old one.
+- `courrier attachment <email-id> <attachment-id>` downloads to a file or stdout.
+- `courrier template list|show|create|update|delete`.
+- `courrier accounts check` probes IMAP and SMTP; `courrier contacts --query` autocompletes.
+- `category` and `bulk_reason` on messages in `--json`.
+
 ## [0.4.0] - 2026-10-30
 
 ### Added

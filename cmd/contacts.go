@@ -1,11 +1,13 @@
 package cmd
 
 import (
+	"context"
 	"strconv"
 
 	"github.com/spf13/cobra"
 
 	"github.com/FacileStudio/courrier-cli/internal/client"
+	"github.com/FacileStudio/courrier-cli/internal/config"
 	"github.com/FacileStudio/courrier-cli/internal/ui"
 )
 
@@ -13,6 +15,7 @@ var (
 	flagContactsAll   bool
 	flagContactsLimit int
 	flagContactsPage  int
+	flagContactsQuery string
 )
 
 // contactsCmd lists the addresses the user has written to, which is what the
@@ -34,6 +37,7 @@ func init() {
 	flags := contactsCmd.Flags()
 	flags.BoolVar(&flagContactsAll, "all", false, "Cover every account, even when a default is set")
 	flags.IntVar(&flagContactsLimit, "limit", 50, "Contacts per page, at most 100")
+	flags.StringVar(&flagContactsQuery, "query", "", "Autocomplete addresses on one account by name or email")
 	flags.IntVar(&flagContactsPage, "page", 1, "Page to show, counting from 1")
 }
 
@@ -45,6 +49,9 @@ func runContacts() error {
 	api, cfg, err := session()
 	if err != nil {
 		return err
+	}
+	if flagContactsQuery != "" {
+		return runContactsSearch(ctx, api, cfg)
 	}
 	account, err := scopeAccount(cfg, flagContactsAll)
 	if err != nil {
@@ -81,4 +88,32 @@ func renderContacts(contacts []client.Contact) {
 		})
 	}
 	ui.Table([]string{"LAST SENT", "SENT", "NAME", "EMAIL"}, rows)
+}
+
+// runContactsSearch autocompletes addresses on the resolved account.
+func runContactsSearch(ctx context.Context, api *client.Client, cfg config.Config) error {
+	accountID, err := resolveAccount(ctx, api, cfg)
+	if err != nil {
+		return wrapInterrupt(ctx, err)
+	}
+	matches, err := api.SearchContacts(ctx, accountID, flagContactsQuery)
+	if err != nil {
+		return wrapInterrupt(ctx, err)
+	}
+	if matches == nil {
+		matches = []client.ContactMatch{}
+	}
+	if flagJSON {
+		return ui.JSON(matches)
+	}
+	if len(matches) == 0 {
+		ui.Plain("No contacts")
+		return nil
+	}
+	rows := make([][]string, 0, len(matches))
+	for _, match := range matches {
+		rows = append(rows, []string{strconv.Itoa(match.Count), truncate(match.Name, 28), match.Email})
+	}
+	ui.Table([]string{"USES", "NAME", "EMAIL"}, rows)
+	return nil
 }
