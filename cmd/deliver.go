@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"errors"
+	"slices"
 	"strings"
 
 	"github.com/FacileStudio/courrier-cli/internal/client"
@@ -20,7 +21,7 @@ func deliver(ctx context.Context, api *client.Client, accountID int64, f *compos
 		return err
 	}
 
-	progress("sending to %s", strings.Join(req.To, ", "))
+	progress("sending to %s", strings.Join(slices.Concat(req.To, req.Bcc), ", "))
 	if err := api.Send(ctx, accountID, req); err != nil {
 		return sendFailure(ctx, err)
 	}
@@ -30,11 +31,12 @@ func deliver(ctx context.Context, api *client.Client, accountID int64, f *compos
 			Sent:        true,
 			To:          req.To,
 			Cc:          append([]string{}, req.Cc...),
+			Bcc:         append([]string{}, req.Bcc...),
 			Subject:     req.Subject,
 			Attachments: files,
 		})
 	}
-	ui.Success("sent to %s", strings.Join(req.To, ", "))
+	ui.Success("sent to %s", strings.Join(slices.Concat(req.To, req.Bcc), ", "))
 	return nil
 }
 
@@ -52,10 +54,7 @@ func confirmDelivery(f *composeFlags, req client.SendRequest, files []attachment
 	}
 
 	ui.Warn("about to send this message")
-	ui.Plain("to      %s", strings.Join(req.To, ", "))
-	if len(req.Cc) > 0 {
-		ui.Plain("cc      %s", strings.Join(req.Cc, ", "))
-	}
+	printRecipients(req.To, req.Cc, req.Bcc)
 	ui.Plain("subject %s", req.Subject)
 	for _, file := range files {
 		ui.Plain("file    %s (%s)", file.Path, humanSize(file.Size))
@@ -95,4 +94,16 @@ func confirmDestructive(what string, yes bool) error {
 		return errors.New("delete cancelled — nothing was changed")
 	}
 	return nil
+}
+
+// printRecipients shows the address lines of a confirmation, leaving out the
+// empty ones.
+func printRecipients(to, cc, bcc []string) {
+	ui.Plain("to      %s", strings.Join(to, ", "))
+	if len(cc) > 0 {
+		ui.Plain("cc      %s", strings.Join(cc, ", "))
+	}
+	if len(bcc) > 0 {
+		ui.Plain("bcc     %s", strings.Join(bcc, ", "))
+	}
 }

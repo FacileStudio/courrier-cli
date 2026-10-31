@@ -38,6 +38,10 @@ courrier contacts [--all|--account N] [--limit 50]      Addresses the user has w
 courrier inbox [--unread] [--since 2h] [--limit 50]     Collapsed conversations, newest first
 courrier list <folder-type> [--since 1d] [filters]      inbox|sent|drafts|trash|junk|archive
 courrier folders                          Folder list with unread and total counts
+courrier folders create <name>            New top-level custom folder
+courrier folders rename <id|name> <new>   Custom folders only
+courrier folders delete <id|name> [--force] --yes   Refuses system folders; --force if it holds mail
+courrier move <ids...> --to <type|folder-id|name>   Move messages, ids are kept
 courrier read <thread-id>                 Every message in one conversation
 courrier read --id <email-id>             One message by id
 courrier search <query> [--limit 30]      Subject, sender and body
@@ -49,8 +53,8 @@ courrier send --to a@b.c --subject "..." [--body "..." | --body-file -] [--html 
               [--cc x@y.z] [--references <id>] [--in-reply-to <id>] [--attach path] --yes
 courrier reply <email-id> --body "..." [--all] [--html ...] [--to/--cc override] [--attach path] --yes
 courrier forward <email-id> --to a@b.c [--body "note"] [--no-attachments] --yes
-courrier draft create [--to --cc --subject --body|--body-file --html|--html-file --in-reply-to --references]
-courrier draft update <id> [same flags; omitted fields are kept; the id changes]
+courrier draft create [--to --cc --bcc --attach --subject --body|--body-file --html|--html-file --in-reply-to --references]
+courrier draft update <id> [same flags; omitted fields are kept; in place, same id; --remove-attachment <att-id>]
 courrier draft delete <id> --yes
 courrier attachment <email-id> <attachment-id> [-o path|-] [--force]
 courrier template list|show <id>|create|update <id>|delete <id> --yes   (--name --subject --body --html --space)
@@ -95,10 +99,11 @@ courrier keys revoke <id> [--yes]         Revoke an API key by id
 - **Folder listings return collapsed conversations, not messages.** A row is a thread;
   `message_count` says how many messages it holds. Expand it with `courrier read <thread-id>`.
 - **`courrier list` takes a folder *type*** (`inbox`, `sent`, …), never a folder id.
-- **There is no Bcc, no move-to-folder and no folder management.** The instance exposes
-  none of them. Archive and delete go through `mark`.
-- **Drafts take no attachments and cannot be edited in place**; `draft update` re-creates
-  the draft under a new id. Read drafts with `courrier list drafts` and `courrier read --id`.
+- **Bcc** is `--bcc` on send, reply, forward and draft. `read --json` returns `bcc_addresses`.
+- **Folders**: only custom folders can be created, renamed or deleted. `move --to` takes a system
+  type, a folder id or a custom folder name; `custom` alone is refused.
+- **Drafts are edited in place** (same id) and take attachments. Read drafts with
+  `courrier list drafts` and `courrier read --id`.
 - **Attachment ids** are in `courrier read --id <email-id> --json`, under `attachments`.
 - **Ids for `mark` come from a listing.** `courrier inbox --json | jq '.emails[].id'`.
 - **`mark` takes at most 200 ids** in one call; the instance refuses more.

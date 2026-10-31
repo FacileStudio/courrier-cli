@@ -18,6 +18,7 @@ the dashboard. Authenticates through the same porte SSO flow the browser uses.
 - `courrier attachment` — download an attachment
 - `courrier template` — list, show, create, update and delete templates
 - `courrier mark` — read, unread, star, archive and delete, up to 200 messages at a time
+- `courrier move`: move messages to any folder; `courrier folders create|rename|delete`
 - `courrier keys` — list, create, and revoke API keys for applications
 - `--json` on every command carrying data
 
@@ -77,7 +78,9 @@ courrier send --to a@b.com --subject "Hi" --html-file mail.html --body "Plain fa
 courrier reply 4812 --body "Thanks" --all --yes
 courrier forward 4812 --to c@d.com --body "FYI" --yes
 courrier draft create --to a@b.com --subject "Later" --body "..."
-courrier draft update 2089 --subject "Sooner"
+courrier draft update 2089 --subject "Sooner" --attach quote.pdf
+courrier move 4812 4813 --to archive
+courrier folders create Clients
 courrier draft delete 2089 --yes
 courrier attachment 4812 77 -o invoice.pdf
 courrier template create --name Intro --subject "Hello" --body "..."
@@ -103,9 +106,12 @@ account it covers every account; with a default set, pass `--all`. `--since` tak
 "this Courrier instance does not support triage; upgrade the server", or "contacts" for
 the other.
 
-`draft update` saves a new draft and deletes the old one, so the id changes. Drafts carry
-no attachments. The instance has no Bcc field, no move-to-folder call and no folder
-management, so the CLI has none either.
+`draft update` changes a draft in place: the id stays, fields you do not pass are kept, and
+attachments stay unless dropped with `--remove-attachment <id>`. Drafts take `--attach` and
+`--bcc` like `send`. `courrier move <id>... --to <type|folder-id|name>` moves messages, and
+`courrier folders create|rename|delete` manage custom folders (system folders are refused, and a
+folder holding messages needs `--force` to delete). These need a server released with Courrier
+commit 0ef767e or later.
 
 ## Configuration
 

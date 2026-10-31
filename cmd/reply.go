@@ -83,7 +83,7 @@ func runReply(cmd *cobra.Command, rawID string) error {
 	}
 	self := accountAddress(ctx, api, accountID)
 	req := buildReply(replyFlags, original, text, htmlBody, flagReplyAll, self, cmd)
-	if err := checkAddresses(req.To, req.Cc); err != nil {
+	if err := checkAddresses(req.To, req.Cc, req.Bcc); err != nil {
 		return err
 	}
 	return deliver(ctx, api, accountID, &replyFlags, req)
@@ -102,7 +102,7 @@ func runForward(cmd *cobra.Command, rawID string) error {
 	if err != nil {
 		return err
 	}
-	if err := checkAddresses(forwardFlags.to, forwardFlags.cc); err != nil {
+	if err := checkAddresses(forwardFlags.to, forwardFlags.cc, forwardFlags.bcc); err != nil {
 		return err
 	}
 	api, accountID, err := openAccount(ctx)

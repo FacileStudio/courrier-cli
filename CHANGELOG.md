@@ -10,6 +10,26 @@ record what shipped rather than what was written down at the time.
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-10-31
+
+### Added
+
+- `--bcc` on `send`, `reply`, `forward` and `draft`; `bcc_addresses` on messages in `--json` and a
+  `bcc` line in `read`.
+- `courrier move <id>... --to <type|folder-id|name>`.
+- `courrier folders create|rename|delete`; system folders are refused, `delete` needs `--force`
+  for a folder that holds messages.
+- `--attach` on `draft create` and `draft update`, and `--remove-attachment` on `draft update`.
+
+### Changed
+
+- `draft update` edits the draft in place and keeps its id.
+- `mark --star` and `--unstar` use one bulk call, falling back to one request per message on an
+  older instance.
+- `send` accepts `--bcc` as the only recipient.
+
+Needs a server with the matching routes (Courrier commit 0ef767e or later).
+
 ## [0.5.0] - 2026-10-30
 
 ### Added
@@ -132,7 +152,8 @@ Release plumbing only. No change to the binary's behaviour.
   the links 404. The standard is still what this repo is built to and is still
   named; only the URL is dropped.
 
-[Unreleased]: https://github.com/FacileStudio/courrier-cli/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/FacileStudio/courrier-cli/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/FacileStudio/courrier-cli/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/FacileStudio/courrier-cli/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/FacileStudio/courrier-cli/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/FacileStudio/courrier-cli/compare/v0.2.0...v0.3.0

@@ -45,9 +45,7 @@ func renderThread(emails []client.Email) {
 		if to := joinAddresses(email.ToAddresses); to != "" {
 			ui.Plain("%s", ui.Dim("to   "+to))
 		}
-		if cc := joinAddresses(email.CcAddresses); cc != "" {
-			ui.Plain("%s", ui.Dim("cc   "+cc))
-		}
+		printCopies(email)
 		for _, attachment := range email.Attachments {
 			ui.Plain("%s", ui.Dim(fmt.Sprintf("file %s (%s, %d bytes)",
 				attachment.Filename, attachment.MimeType, attachment.Size)))
@@ -266,4 +264,14 @@ func renderPageSummary(page client.EmailPage) {
 		summary += fmt.Sprintf("  ·  --page %d for more", number+1)
 	}
 	ui.Plain("%s", ui.Dim(summary))
+}
+
+// printCopies shows the Cc and Bcc lines of a message, when it has any.
+func printCopies(email client.Email) {
+	if cc := joinAddresses(email.CcAddresses); cc != "" {
+		ui.Plain("%s", ui.Dim("cc   "+cc))
+	}
+	if bcc := joinAddresses(email.BccAddresses); bcc != "" {
+		ui.Plain("%s", ui.Dim("bcc  "+bcc))
+	}
 }

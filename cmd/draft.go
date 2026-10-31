@@ -2,10 +2,8 @@ package cmd
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strconv"
-	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -17,6 +15,7 @@ var (
 	draftFlags    composeFlags
 	draftEditFlag composeFlags
 	flagDraftYes  bool
+	flagDraftDrop []int64
 )
 
 var draftCmd = &cobra.Command{
@@ -24,10 +23,13 @@ var draftCmd = &cobra.Command{
 	Short: "Create, change and delete drafts",
 	Long: `Manage drafts in the account's drafts folder.
 
-Read drafts with courrier list drafts and courrier read --id <id>. The server
-stores drafts from JSON only, so a draft carries no attachments. It cannot edit
-a draft in place either: update saves a new draft and deletes the old one, so
-the id changes.`,
+Read drafts with courrier list drafts and courrier read --id <id>.
+
+A draft takes the same fields as send, --bcc and --attach included. update
+changes it in place: the id stays the same, fields you do not pass are kept, and
+attachments already on the draft stay unless you name them with
+--remove-attachment <attachment-id> (ids are in courrier read --id <id> --json).
+delete removes the draft from the instance and from the drafts mailbox.`,
 }
 
 var draftCreateCmd = &cobra.Command{
@@ -54,17 +56,19 @@ var draftDeleteCmd = &cobra.Command{
 // init wires the draft commands and flags.
 func init() {
 	draftFlags.bind(draftCreateCmd, false)
+	draftFlags.bindAttach(draftCreateCmd)
 	draftEditFlag.bind(draftUpdateCmd, false)
+	draftEditFlag.bindAttach(draftUpdateCmd)
+	draftUpdateCmd.Flags().Int64SliceVar(&flagDraftDrop, "remove-attachment", nil, "Attachment id to drop from the draft, repeatable")
 	draftDeleteCmd.Flags().BoolVar(&flagDraftYes, "yes", false, "Answer the confirmation with yes")
 	draftCmd.AddCommand(draftCreateCmd, draftUpdateCmd, draftDeleteCmd)
 }
 
 // draftReport is the --json document for a draft write.
 type draftReport struct {
-	AccountID int64  `json:"account_id"`
-	ID        int64  `json:"id"`
-	Replaced  *int64 `json:"replaced,omitempty"`
-	Deleted   bool   `json:"deleted,omitempty"`
+	AccountID int64 `json:"account_id"`
+	ID        int64 `json:"id"`
+	Deleted   bool  `json:"deleted,omitempty"`
 }
 
 // runDraftCreate saves the message exactly as the flags describe it.
@@ -79,7 +83,10 @@ func runDraftCreate(cmd *cobra.Command, args []string) error {
 	if text, err = draftFlags.stdinBody(text, html); err != nil {
 		return err
 	}
-	if err := checkAddresses(draftFlags.to, draftFlags.cc); err != nil {
+	if err := checkAddresses(draftFlags.to, draftFlags.cc, draftFlags.bcc); err != nil {
+		return err
+	}
+	if _, err := checkAttachments(draftFlags.attach, bodyText(text)+bodyText(html)); err != nil {
 		return err
 	}
 	api, accountID, err := openAccount(ctx)
@@ -93,40 +100,48 @@ func runDraftCreate(cmd *cobra.Command, args []string) error {
 	return reportDraft(draftReport{AccountID: accountID, ID: id}, "draft saved as id %d", id)
 }
 
-// runDraftUpdate merges the flags over the stored draft, saves the result and
-// removes the original.
+// runDraftUpdate merges the flags over the stored draft and saves the result
+// in place, so the draft keeps its id.
 func runDraftUpdate(cmd *cobra.Command, args []string) error {
 	ctx, stop := signalContext()
 	defer stop()
 
-	oldID, err := strconv.ParseInt(args[0], 10, 64)
-	if err != nil || oldID <= 0 {
+	id, err := strconv.ParseInt(args[0], 10, 64)
+	if err != nil || id <= 0 {
 		return fmt.Errorf("%q is not a draft id — ids are the numbers in `courrier list drafts`", args[0])
 	}
 	text, html, err := draftEditFlag.bodies(cmd)
 	if err != nil {
 		return err
 	}
+	if _, err := checkAttachments(draftEditFlag.attach, bodyText(text)+bodyText(html)); err != nil {
+		return err
+	}
 	api, accountID, err := openAccount(ctx)
 	if err != nil {
 		return err
 	}
-	stored, err := loadDraft(ctx, api, accountID, oldID)
+	stored, err := loadDraft(ctx, api, accountID, id)
 	if err != nil {
 		return wrapInterrupt(ctx, err)
 	}
 	req := mergeDraft(cmd, &draftEditFlag, stored, text, html)
-	if err := checkAddresses(req.To, req.Cc); err != nil {
+	req.Attachments = draftEditFlag.attach
+	if err := checkAddresses(req.To, req.Cc, req.Bcc); err != nil {
 		return err
 	}
-	newID, err := api.SaveDraft(ctx, accountID, req)
-	if err != nil {
+	if _, err := api.UpdateDraft(ctx, accountID, id, req, flagDraftDrop); err != nil {
 		return wrapInterrupt(ctx, fmt.Errorf("cannot save the changed draft — %w", err))
 	}
-	if err := api.DeleteDraft(ctx, accountID, oldID); err != nil {
-		return fmt.Errorf("the changed draft is saved as id %d but the old draft %d could not be deleted — %w", newID, oldID, err)
+	return reportDraft(draftReport{AccountID: accountID, ID: id}, "draft %d updated", id)
+}
+
+// bodyText dereferences an optional body for a size count.
+func bodyText(body *string) string {
+	if body == nil {
+		return ""
 	}
-	return reportDraft(draftReport{AccountID: accountID, ID: newID, Replaced: &oldID}, "draft %d saved as id %d", oldID, newID)
+	return *body
 }
 
 // runDraftDelete removes one draft after the usual confirmation.
@@ -172,67 +187,4 @@ func reportDraft(report draftReport, format string, a ...any) error {
 	}
 	ui.Success(format, a...)
 	return nil
-}
-
-// loadDraft fetches a message and refuses anything that is not in the drafts
-// folder, so update can never delete a real message.
-func loadDraft(ctx context.Context, api *client.Client, accountID, id int64) (client.Email, error) {
-	email, err := api.Email(ctx, accountID, id)
-	if err != nil {
-		return email, err
-	}
-	folders, err := api.Folders(ctx, accountID)
-	if err != nil {
-		return email, err
-	}
-	folder, ok := folderByID(folders, email.FolderID)
-	if !ok || folder.Type != "drafts" {
-		return email, errors.New("email " + strconv.FormatInt(id, 10) + " is not a draft — only drafts can be changed this way")
-	}
-	return email, nil
-}
-
-// mergeDraft overlays the flags the caller passed onto the stored draft.
-func mergeDraft(cmd *cobra.Command, f *composeFlags, stored client.Email, text, html *string) client.SendRequest {
-	req := client.SendRequest{
-		To:         addressList(stored.ToAddresses),
-		Cc:         addressList(stored.CcAddresses),
-		Subject:    stored.Subject,
-		Body:       stored.BodyText,
-		BodyHTML:   stored.BodyHTML,
-		InReplyTo:  stored.InReplyTo,
-		References: strings.Fields(stored.References),
-	}
-	changed := cmd.Flags().Changed
-	if changed("to") {
-		req.To = f.to
-	}
-	if changed("cc") {
-		req.Cc = f.cc
-	}
-	if changed("subject") {
-		req.Subject = f.subject
-	}
-	if changed("in-reply-to") {
-		req.InReplyTo = f.inReplyTo
-	}
-	if changed("references") {
-		req.References = f.references
-	}
-	if text != nil {
-		req.Body = *text
-	}
-	if html != nil {
-		req.BodyHTML = *html
-	}
-	return req
-}
-
-// addressList flattens parsed addresses to the bare emails the API accepts.
-func addressList(addresses []client.Address) []string {
-	out := make([]string, 0, len(addresses))
-	for _, address := range addresses {
-		out = append(out, address.Email)
-	}
-	return out
 }

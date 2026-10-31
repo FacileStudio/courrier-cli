@@ -328,8 +328,8 @@ func (c *Client) UpdateEmail(ctx context.Context, accountID, emailID int64, isRe
 const maxBulkIDs = 200
 
 // BulkAction applies one action to a batch of messages. Valid actions are
-// delete, archive, mark_read and mark_unread. Rate limited to thirty calls a
-// minute.
+// delete, archive, mark_read, mark_unread, star and unstar. Rate limited to
+// thirty calls a minute.
 //
 // An empty batch and a batch over maxBulkIDs are both a 400 server-side, so
 // they are refused here instead of spending a round trip to be told so.
@@ -356,6 +356,7 @@ func (c *Client) BulkAction(ctx context.Context, accountID int64, ids []int64, a
 type sendPayload struct {
 	To         []string `json:"to"`
 	Cc         []string `json:"cc"`
+	Bcc        []string `json:"bcc"`
 	Subject    string   `json:"subject"`
 	Body       string   `json:"body"`
 	BodyHTML   string   `json:"body_html"`
@@ -373,33 +374,54 @@ type sendPayload struct {
 func (c *Client) Send(ctx context.Context, accountID int64, req SendRequest) error {
 	path := mailPath(accountID, "/send")
 	if len(req.Attachments) == 0 {
-		body := sendPayload{
-			To:         req.To,
-			Cc:         req.Cc,
-			Subject:    req.Subject,
-			Body:       req.Body,
-			BodyHTML:   req.BodyHTML,
-			InReplyTo:  req.InReplyTo,
-			References: req.References,
-		}
+		body := req.payload()
 		var out struct {
 			Sent bool `json:"sent"`
 		}
 		return c.do(ctx, http.MethodPost, path, body, &out)
 	}
 
+	var out struct {
+		Sent bool `json:"sent"`
+	}
+	return c.multipart(ctx, http.MethodPost, path, req, &out)
+}
+
+// payload is the JSON form of the request.
+func (r SendRequest) payload() sendPayload {
+	return sendPayload{
+		To:         r.To,
+		Cc:         r.Cc,
+		Bcc:        r.Bcc,
+		Subject:    r.Subject,
+		Body:       r.Body,
+		BodyHTML:   r.BodyHTML,
+		InReplyTo:  r.InReplyTo,
+		References: r.References,
+	}
+}
+
+// multipart sends a message as multipart/form-data. removeAttachments is only
+// meaningful on a draft update and is left out of the form when empty.
+func (c *Client) multipart(ctx context.Context, method, path string, req SendRequest, out any) error {
 	payload, contentType, err := encodeSendMultipart(req)
 	if err != nil {
 		return err
 	}
-	request, err := c.newRequest(ctx, http.MethodPost, path, contentType, payload)
+	request, err := c.newRequest(ctx, method, path, contentType, payload)
 	if err != nil {
 		return err
 	}
-	var out struct {
-		Sent bool `json:"sent"`
+	return c.send(request, out)
+}
+
+// joinInts renders ids as the comma-separated string the multipart form uses.
+func joinInts(ids []int64) string {
+	parts := make([]string, len(ids))
+	for i, id := range ids {
+		parts[i] = strconv.FormatInt(id, 10)
 	}
-	return c.send(request, &out)
+	return strings.Join(parts, ",")
 }
 
 // encodeSendMultipart builds the multipart body for a message with
@@ -413,11 +435,13 @@ func encodeSendMultipart(req SendRequest) (io.Reader, string, error) {
 	fields := [][2]string{
 		{"to", strings.Join(req.To, ",")},
 		{"cc", strings.Join(req.Cc, ",")},
+		{"bcc", strings.Join(req.Bcc, ",")},
 		{"subject", req.Subject},
 		{"body", req.Body},
 		{"body_html", req.BodyHTML},
 		{"in_reply_to", req.InReplyTo},
 		{"references", strings.Join(req.References, ",")},
+		{"remove_attachments", joinInts(req.RemoveAttachments)},
 	}
 	for _, field := range fields {
 		if field[1] == "" {

@@ -30,6 +30,7 @@ const (
 var (
 	flagSendTo        []string
 	flagSendCc        []string
+	flagSendBcc       []string
 	flagSendSubject   string
 	flagSendBody      string
 	flagSendBodyFile  string
@@ -64,13 +65,14 @@ reading the body.`,
 
 // init wires the send flags.
 //
-// --to and --cc are slices, which split on commas, so one flag can carry a list
+// --to, --cc and --bcc are slices, which split on commas, so one flag can carry a list
 // of addresses. --attach is an array, which does not split: a comma is legal in
 // a filename and silently halving a path is worse than making the caller repeat
 // the flag.
 func init() {
 	sendCmd.Flags().StringSliceVar(&flagSendTo, "to", nil, "Recipient address, repeatable")
 	sendCmd.Flags().StringSliceVar(&flagSendCc, "cc", nil, "Carbon copy address, repeatable")
+	sendCmd.Flags().StringSliceVar(&flagSendBcc, "bcc", nil, "Blind carbon copy address, repeatable")
 	sendCmd.Flags().StringVar(&flagSendSubject, "subject", "", "Subject line")
 	sendCmd.Flags().StringVar(&flagSendBody, "body", "", "Message body as plain text")
 	sendCmd.Flags().StringVar(&flagSendBodyFile, "body-file", "", "Read the message body from this file, or - for stdin")
@@ -80,8 +82,6 @@ func init() {
 	sendCmd.Flags().StringVar(&flagSendHTMLFile, "html-file", "", "Read the HTML body from this file, or - for stdin")
 	sendCmd.Flags().StringSliceVar(&flagSendRefs, "references", nil, "Message-ID in the thread, repeatable")
 	sendCmd.Flags().BoolVar(&flagSendYes, "yes", false, "Answer the confirmation with yes")
-
-	_ = sendCmd.MarkFlagRequired("to")
 }
 
 // attachment is one validated file: the path to send it from, and the size that
@@ -97,6 +97,7 @@ type sendReport struct {
 	Sent        bool         `json:"sent"`
 	To          []string     `json:"to"`
 	Cc          []string     `json:"cc"`
+	Bcc         []string     `json:"bcc"`
 	Subject     string       `json:"subject"`
 	Attachments []attachment `json:"attachments"`
 }
@@ -136,10 +137,11 @@ func runSend(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	progress("sending to %s", strings.Join(flagSendTo, ", "))
+	progress("sending to %s", strings.Join(slices.Concat(flagSendTo, flagSendBcc), ", "))
 	err = api.Send(ctx, accountID, client.SendRequest{
 		To:          flagSendTo,
 		Cc:          flagSendCc,
+		Bcc:         flagSendBcc,
 		Subject:     flagSendSubject,
 		Body:        body,
 		BodyHTML:    htmlBody,
@@ -157,11 +159,12 @@ func runSend(cmd *cobra.Command, args []string) error {
 			Sent:        true,
 			To:          flagSendTo,
 			Cc:          append([]string{}, flagSendCc...),
+			Bcc:         append([]string{}, flagSendBcc...),
 			Subject:     flagSendSubject,
 			Attachments: attachments,
 		})
 	}
-	ui.Success("sent to %s", strings.Join(flagSendTo, ", "))
+	ui.Success("sent to %s", strings.Join(slices.Concat(flagSendTo, flagSendBcc), ", "))
 	return nil
 }
 
@@ -223,12 +226,12 @@ func readStdinBody() (string, bool, error) {
 // validateRecipients refuses locally what the SMTP server would refuse anyway,
 // which is cheaper and clearer than a relay's rejection prose.
 func validateRecipients() error {
-	if len(flagSendTo) == 0 {
-		return errors.New("no recipient — pass --to <address>")
+	if len(flagSendTo)+len(flagSendBcc) == 0 {
+		return errors.New("no recipient — pass --to <address>, or --bcc <address> for a blind copy only")
 	}
-	for _, address := range slices.Concat(flagSendTo, flagSendCc) {
+	for _, address := range slices.Concat(flagSendTo, flagSendCc, flagSendBcc) {
 		if !strings.Contains(address, "@") {
-			return fmt.Errorf("%q is not an email address — check the --to and --cc values", address)
+			return fmt.Errorf("%q is not an email address — check the --to, --cc and --bcc values", address)
 		}
 	}
 	return nil
@@ -289,10 +292,7 @@ func confirmSend(body string, attachments []attachment, bodyFromStdin bool) erro
 	}
 
 	ui.Warn("about to send this message")
-	ui.Plain("to      %s", strings.Join(flagSendTo, ", "))
-	if len(flagSendCc) > 0 {
-		ui.Plain("cc      %s", strings.Join(flagSendCc, ", "))
-	}
+	printRecipients(flagSendTo, flagSendCc, flagSendBcc)
 	ui.Plain("subject %s", subjectOrNone())
 	for _, file := range attachments {
 		ui.Plain("file    %s (%s)", file.Path, humanSize(file.Size))

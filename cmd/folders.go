@@ -14,11 +14,15 @@ import (
 // takes, and confusing the two is the API's one real trap.
 var foldersCmd = &cobra.Command{
 	Use:   "folders",
-	Short: "List folders with their counts",
+	Short: "List and manage folders",
 	Long: `List the account's IMAP folders with their unread and total counts.
 
 The TYPE column is what a listing takes: courrier list <folder-type>. The ID
-column is what a single-folder sync takes: courrier sync --folder <id>.`,
+column is what a single-folder sync takes: courrier sync --folder <id>, and
+what move, rename and delete take.
+
+courrier folders create|rename|delete manage custom folders. System folders
+(inbox, sent, drafts, trash, junk, archive) are never renamed or deleted.`,
 	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ctx, stop := signalContext()

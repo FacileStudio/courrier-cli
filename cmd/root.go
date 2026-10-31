@@ -88,6 +88,7 @@ func Execute() {
 		readCmd,
 		searchCmd,
 		markCmd,
+		moveCmd,
 		sendCmd,
 		keysCmd,
 		triageCmd,

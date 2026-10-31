@@ -18,6 +18,7 @@ import (
 type composeFlags struct {
 	to         []string
 	cc         []string
+	bcc        []string
 	references []string
 	attach     []string
 	subject    string
@@ -30,12 +31,14 @@ type composeFlags struct {
 	usedStdin  bool
 }
 
-// bind registers the shared flags on cmd. Attachments are optional because the
-// draft endpoint takes JSON and cannot carry them.
+// bind registers the shared flags on cmd. Attachments and the confirmation are
+// optional: drafts take attachments but send nothing, so they bind --attach
+// alone through bindAttach.
 func (f *composeFlags) bind(cmd *cobra.Command, attachments bool) {
 	flags := cmd.Flags()
 	flags.StringSliceVar(&f.to, "to", nil, "Recipient address, repeatable")
 	flags.StringSliceVar(&f.cc, "cc", nil, "Carbon copy address, repeatable")
+	flags.StringSliceVar(&f.bcc, "bcc", nil, "Blind carbon copy address, repeatable")
 	flags.StringVar(&f.subject, "subject", "", "Subject line")
 	flags.StringVar(&f.body, "body", "", "Message body as plain text")
 	flags.StringVar(&f.bodyFile, "body-file", "", "Read the plain text body from this file, or - for stdin")
@@ -44,9 +47,15 @@ func (f *composeFlags) bind(cmd *cobra.Command, attachments bool) {
 	flags.StringVar(&f.inReplyTo, "in-reply-to", "", "Message-ID this message replies to")
 	flags.StringSliceVar(&f.references, "references", nil, "Message-ID in the thread, repeatable")
 	if attachments {
-		flags.StringArrayVar(&f.attach, "attach", nil, "Attach this local file, repeatable")
+		f.bindAttach(cmd)
 		flags.BoolVar(&f.yes, "yes", false, "Answer the confirmation with yes")
 	}
+}
+
+// bindAttach registers --attach, an array so that a comma in a filename is not
+// split.
+func (f *composeFlags) bindAttach(cmd *cobra.Command) {
+	cmd.Flags().StringArrayVar(&f.attach, "attach", nil, "Attach this local file, repeatable")
 }
 
 // bodies resolves the plain text and HTML bodies. A nil result means the flag
@@ -107,6 +116,7 @@ func (f *composeFlags) request(text, html *string) client.SendRequest {
 	req := client.SendRequest{
 		To:          f.to,
 		Cc:          f.cc,
+		Bcc:         f.bcc,
 		Subject:     f.subject,
 		InReplyTo:   f.inReplyTo,
 		References:  f.references,
@@ -126,7 +136,7 @@ func (f *composeFlags) request(text, html *string) client.SendRequest {
 func checkAddresses(lists ...[]string) error {
 	for _, address := range slices.Concat(lists...) {
 		if !strings.Contains(address, "@") {
-			return fmt.Errorf("%q is not an email address — check the --to and --cc values", address)
+			return fmt.Errorf("%q is not an email address — check the --to, --cc and --bcc values", address)
 		}
 	}
 	return nil

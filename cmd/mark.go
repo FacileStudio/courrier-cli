@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"slices"
 	"strconv"
@@ -66,9 +67,9 @@ func init() {
 var starOn, starOff = true, false
 
 // markChoice is one action flag and what it does. bulk names the server-side
-// bulk action and is empty for the two star flags, which have no bulk
-// equivalent; starred is set for exactly those two. verb completes the sentence
-// "3 messages <verb>".
+// bulk action. starred is set for the two star flags, which fall back to one
+// PATCH per message on an instance that predates the star bulk actions. verb
+// completes the sentence "3 messages <verb>".
 type markChoice struct {
 	flag    string
 	set     *bool
@@ -81,8 +82,8 @@ type markChoice struct {
 var markChoices = []markChoice{
 	{flag: "--read", set: &flagMarkRead, bulk: "mark_read", verb: "marked read"},
 	{flag: "--unread", set: &flagMarkUnread, bulk: "mark_unread", verb: "marked unread"},
-	{flag: "--star", set: &flagMarkStar, starred: &starOn, verb: "starred"},
-	{flag: "--unstar", set: &flagMarkUnstar, starred: &starOff, verb: "unstarred"},
+	{flag: "--star", set: &flagMarkStar, bulk: "star", starred: &starOn, verb: "starred"},
+	{flag: "--unstar", set: &flagMarkUnstar, bulk: "unstar", starred: &starOff, verb: "unstarred"},
 	{flag: "--archive", set: &flagMarkArchive, bulk: "archive", verb: "archived"},
 	{flag: "--delete", set: &flagMarkDelete, bulk: "delete", verb: "deleted"},
 }
@@ -217,21 +218,47 @@ func confirmDelete(ids []int64) error {
 // the rate limiter.
 func markBulk(ctx context.Context, api *client.Client, accountID int64, ids []int64, choice markChoice) error {
 	if err := api.BulkAction(ctx, accountID, ids, choice.bulk); err != nil {
-		if ctx.Err() != nil {
-			return ErrInterrupted
-		}
-		if rateLimited(err) {
-			return fmt.Errorf("the instance refused the change under its rate limit — wait a minute and run it again")
-		}
-		return fmt.Errorf("%s could not be %s — %w", messageCount(len(ids)), choice.verb, err)
+		return bulkFailure(ctx, err, ids, choice)
 	}
 	return reportMark(accountID, ids, nil, choice)
 }
 
-// markStarred flips the star one message at a time: the bulk endpoint has no
-// star action. Each failure is named as it happens and the run still exits
-// non-zero, so a batch that half worked is not mistaken for one that worked.
+// bulkFailure explains a refused bulk action.
+func bulkFailure(ctx context.Context, err error, ids []int64, choice markChoice) error {
+	if ctx.Err() != nil {
+		return ErrInterrupted
+	}
+	if rateLimited(err) {
+		return fmt.Errorf("the instance refused the change under its rate limit — wait a minute and run it again")
+	}
+	return fmt.Errorf("%s could not be %s — %w", messageCount(len(ids)), choice.verb, err)
+}
+
+// markStarred stars or unstars the batch in one call. An instance that predates
+// the star bulk actions answers 400 "unknown action", and only then does it fall
+// back to one message at a time.
 func markStarred(ctx context.Context, api *client.Client, accountID int64, ids []int64, choice markChoice) error {
+	err := api.BulkAction(ctx, accountID, ids, choice.bulk)
+	if err == nil {
+		return reportMark(accountID, ids, nil, choice)
+	}
+	if !unknownAction(err) {
+		return bulkFailure(ctx, err, ids, choice)
+	}
+	return markStarredEach(ctx, api, accountID, ids, choice)
+}
+
+// unknownAction reports whether the instance rejected a bulk action it does not
+// know.
+func unknownAction(err error) bool {
+	var apiErr *client.Error
+	return errors.As(err, &apiErr) && apiErr.Status == http.StatusBadRequest && strings.Contains(apiErr.Message, "unknown action")
+}
+
+// markStarredEach flips the star one message at a time. Each failure is named as
+// it happens and the run still exits non-zero, so a batch that half worked is
+// not mistaken for one that worked.
+func markStarredEach(ctx context.Context, api *client.Client, accountID int64, ids []int64, choice markChoice) error {
 	failed := make([]int64, 0)
 
 	for _, id := range ids {

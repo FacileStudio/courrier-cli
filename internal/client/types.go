@@ -75,6 +75,7 @@ type Email struct {
 	FromName       string       `json:"from_name"`
 	ToAddresses    []Address    `json:"to_addresses"`
 	CcAddresses    []Address    `json:"cc_addresses"`
+	BccAddresses   []Address    `json:"bcc_addresses"`
 	Date           string       `json:"date"`
 	BodyText       string       `json:"body_text,omitempty"`
 	BodyHTML       string       `json:"body_html,omitempty"`
@@ -116,10 +117,13 @@ type ListOptions struct {
 type SendRequest struct {
 	To          []string
 	Cc          []string
+	Bcc         []string
 	Subject     string
 	Body        string
 	BodyHTML    string
 	InReplyTo   string
 	References  []string
 	Attachments []string
+
+	RemoveAttachments []int64
 }
