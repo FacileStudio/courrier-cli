@@ -10,6 +10,19 @@ record what shipped rather than what was written down at the time.
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-11-03
+
+### Changed
+
+- `courrier login` prints an approval link and waits for you to approve it in any browser, with
+  the OAuth device grant through `porte/devicelogin`. Nothing listens on a port and nothing is
+  typed, so it works over SSH. An instance without the device exchange falls back to the loopback
+  flow.
+
+### Added
+
+- `--listener` on `login` forces the loopback browser flow.
+
 ## [0.6.0] - 2026-10-31
 
 ### Added
@@ -152,7 +165,8 @@ Release plumbing only. No change to the binary's behaviour.
   the links 404. The standard is still what this repo is built to and is still
   named; only the URL is dropped.
 
-[Unreleased]: https://github.com/FacileStudio/courrier-cli/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/FacileStudio/courrier-cli/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/FacileStudio/courrier-cli/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/FacileStudio/courrier-cli/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/FacileStudio/courrier-cli/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/FacileStudio/courrier-cli/compare/v0.3.0...v0.4.0

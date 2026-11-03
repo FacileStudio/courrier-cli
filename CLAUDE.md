@@ -28,9 +28,9 @@ scripts/check.sh   the quality gate
 ```
 
 Dependencies are cobra, `fatih/color`, `golang.org/x/term`, `gopkg.in/yaml.v3` and
-`FacileStudio/porte` for `porte/loopback`. Adding a sixth needs a reason — a client for one
-API does not need a framework. `porte/loopback` is standard library only by design, so it
-brings none of porte's server half with it; `go list -deps ./...` must stay free of chi,
+`FacileStudio/porte` for `porte/loopback` and `porte/devicelogin`. Adding a sixth needs a reason — a client for one
+API does not need a framework. Both porte packages are standard library only by design, so they
+bring none of porte's server half with it; `go list -deps ./...` must stay free of chi,
 pgx, oauth2 and go-oidc.
 
 ## Conventions
@@ -65,7 +65,12 @@ HTTP layer.
 
 `courrier login` asks the instance what it accepts (`GET /api/auth/config`), then either:
 
-- **SSO**: binds a loopback listener, opens `…/api/auth/oidc?flow=cli&port=N&cli_state=S`,
+- **SSO**: the device grant through `porte/devicelogin`. It prints a Registre approval link,
+  polls until the user approves it in any browser, and trades the Registre token at
+  `/api/auth/oidc/device/exchange`. Nothing listens and nothing is typed, so it works over SSH.
+  A 401 there means the account never signed in to Courrier in a browser. A 404, or `--listener`,
+  falls back to the loopback flow below.
+- **SSO loopback**: binds a loopback listener, opens `…/api/auth/oidc?flow=cli&port=N&cli_state=S`,
   waits for the redirect with the one-time code, and trades it at
   `/api/auth/oidc/exchange`. The state nonce is echoed and verified, so a callback from a
   different login is refused — and the listener keeps waiting rather than failing, because

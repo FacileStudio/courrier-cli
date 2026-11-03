@@ -25,7 +25,7 @@ Triggers: "email", "inbox", "mail", "unread", "thread", "send an email",
 
 ### Setup
 ```
-courrier login [url]            Authenticate (browser SSO, or password)
+courrier login [url]            Authenticate (SSO approval link, or password)
 courrier logout                 Revoke the stored session
 courrier accounts               List mail accounts; marks the default
 ```

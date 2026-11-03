@@ -11,8 +11,6 @@ import (
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 
-	"github.com/FacileStudio/porte/loopback"
-
 	"github.com/FacileStudio/courrier-cli/internal/client"
 	"github.com/FacileStudio/courrier-cli/internal/config"
 	"github.com/FacileStudio/courrier-cli/internal/ui"
@@ -22,23 +20,8 @@ var (
 	loginEmail     string
 	loginPassword  string
 	loginNoBrowser bool
+	loginListener  bool
 )
-
-// porteMount is the path Courrier's API mounts porte under, and the reason the
-// login URL is /api/auth/oidc rather than /auth/oidc. porte's routes are
-// relative to whatever router carries them, so where they hang is Courrier's
-// decision and not porte's.
-//
-// A login URL built against the wrong mount is not an error anywhere. The
-// browser completes an ordinary web login, the user lands on the dashboard, and
-// the listener sits out its three minutes waiting for a redirect nobody sends.
-const porteMount = "/api"
-
-// loginAppName is the tool the loopback page names. By the time the browser is
-// on 127.0.0.1 it has left Courrier's domain behind and the address bar proves
-// nothing, so the name on the page is all a user has to tell this login from
-// any other local process that asked them to sign in.
-const loginAppName = "Courrier"
 
 // errSSOOnly is what an instance running SSO_ONLY looks like from here: porte
 // does not register the local credential routes at all, so the password login
@@ -59,9 +42,12 @@ var loginCmd = &cobra.Command{
 need neither. The URL defaults to the one already stored.
 
 The instance is asked what it accepts before anything is typed. Where it offers
-single sign-on, a browser opens, the login redirects back to a one-time code on
-this machine, and the code is traded for a session token. An instance without
-single sign-on takes an address and a password instead.
+single sign-on, login prints an approval link and waits until you approve the
+sign-in in any browser. Nothing listens on a port and nothing is typed, so it
+works over SSH. --listener uses the older flow, where a browser on this machine
+redirects a one-time code to a local port; an instance without device login falls
+back to it on its own. An instance without single sign-on takes an address and a
+password instead.
 
 A login that finds exactly one mail account records it as the default.`,
 	Args: cobra.MaximumNArgs(1),
@@ -130,52 +116,6 @@ func resolveLoginURL(stored string, args []string) string {
 		resolved = config.DefaultURL
 	}
 	return resolved
-}
-
-// loginViaSSO runs the porte CLI flow: a listener on loopback, a browser, a
-// redirect back carrying a one-time code, and an exchange for the session
-// token. The state nonce is minted here and verified by the listener, so a
-// callback belonging to another login is refused.
-//
-// The listener is porte/loopback rather than a copy of it. Three CLIs each grew
-// their own, and the parts that matter are the parts that are silent when they
-// are wrong: a callback whose state does not match must be refused without
-// ending the login, because ending it lets any page the user has open close a
-// login it did not start, and accepting it lets that page hand this CLI a
-// session that is not the user's. One reviewed copy is the only way that stays
-// true in all three.
-func loginViaSSO(ctx context.Context, api *client.Client, base string) (string, error) {
-	listener, err := loopback.Listen()
-	if err != nil {
-		return "", err
-	}
-	defer listener.Close()
-	listener.AppName = loginAppName
-
-	state, err := loopback.RandomState()
-	if err != nil {
-		return "", err
-	}
-
-	target := listener.LoginURL(base, porteMount, state)
-	if loginNoBrowser || !loopback.OpenBrowser(target) {
-		loginShowURL(target)
-	} else {
-		loginStep("opening your browser to sign in")
-		loginHint("if nothing opened, run login again with --no-browser and open the URL yourself")
-	}
-
-	loginStep("waiting for the login to complete")
-	code, err := listener.WaitForCode(ctx, state)
-	if err != nil {
-		return "", wrapInterrupt(ctx, err)
-	}
-
-	token, err := api.Exchange(ctx, code)
-	if err != nil {
-		return "", wrapInterrupt(ctx, fmt.Errorf("the login code was refused — run login again, a code is good for sixty seconds and works once: %w", err))
-	}
-	return token, nil
 }
 
 // loginViaPassword exchanges an address and a password for a session token,
@@ -339,4 +279,5 @@ func init() {
 	loginCmd.Flags().StringVar(&loginEmail, "email", "", "Email address, skipping the prompt")
 	loginCmd.Flags().StringVar(&loginPassword, "password", "", "Password, skipping the prompt")
 	loginCmd.Flags().BoolVar(&loginNoBrowser, "no-browser", false, "Print the login URL instead of opening a browser")
+	loginCmd.Flags().BoolVar(&loginListener, "listener", false, "Use the loopback browser flow instead of the approval link")
 }

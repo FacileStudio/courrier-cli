@@ -3,7 +3,7 @@ module github.com/FacileStudio/courrier-cli
 go 1.26
 
 require (
-	github.com/FacileStudio/porte v0.5.2
+	github.com/FacileStudio/porte v0.9.0
 	github.com/fatih/color v1.19.0
 	github.com/spf13/cobra v1.10.2
 	golang.org/x/term v0.44.0

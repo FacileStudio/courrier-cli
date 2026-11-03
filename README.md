@@ -8,7 +8,7 @@ the dashboard. Authenticates through the same porte SSO flow the browser uses.
 
 ## What it does
 
-- `courrier login` — browser SSO flow (one-time code via loopback) or password
+- `courrier login` — prints an approval link for SSO, works over SSH with nothing to type, or password
 - `courrier inbox` — collapsed conversations, newest first, with unread and star markers
 - `courrier read` — every message in one thread, plain text, no HTML renderer needed
 - `courrier search` — trigram search over subject, sender and body
@@ -48,8 +48,9 @@ facile install courrier
 ## Setup
 
 ```sh
-courrier login                    # opens the browser, SSO when the instance offers it
-courrier login --no-browser       # print the URL instead
+courrier login                    # prints an approval link, approve it in any browser
+courrier login --no-browser       # print the link without opening a browser
+courrier login --listener         # the loopback flow: a local browser redirects here
 courrier login --email you@x.com  # password flow, prompts for the password
 ```
 
