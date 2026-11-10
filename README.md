@@ -152,6 +152,10 @@ mise run format     # rewrite Go sources in place
   It lived in `FacileStudio/Wiki`, which was removed on 2026-08-22; the link is omitted until it
   has a permanent home again
 
+## License
+
+courrier-cli is released under the [MIT License](LICENSE).
+
 ---
 
 Part of the [Facile Suite](https://facile.studio) — self-hosted tools for creative studios
