@@ -10,6 +10,16 @@ record what shipped rather than what was written down at the time.
 
 ## [Unreleased]
 
+## [0.7.1] - 2026-11-11
+
+### Security
+
+- build: Go 1.26.11 (`go` directive, mise pin). It fixes GO-2026-6848 to GO-2026-6859 in the standard library and toolchain, which douane reported as unscored gaps and which failed the gate.
+
+### Fixed
+
+- fix(cmd): `courrier accounts` prints its table again. The API keys change in v0.3.0 dropped the `ui.Table` call, so the command built the rows and printed nothing; staticcheck (SA4010) failed `filet gate` on it.
+
 ### Added
 
 - courrier-cli is released under the [MIT License](LICENSE).
@@ -169,7 +179,8 @@ Release plumbing only. No change to the binary's behaviour.
   the links 404. The standard is still what this repo is built to and is still
   named; only the URL is dropped.
 
-[Unreleased]: https://github.com/FacileStudio/courrier-cli/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/FacileStudio/courrier-cli/compare/v0.7.1...HEAD
+[0.7.1]: https://github.com/FacileStudio/courrier-cli/compare/v0.7.0...v0.7.1
 [0.7.0]: https://github.com/FacileStudio/courrier-cli/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/FacileStudio/courrier-cli/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/FacileStudio/courrier-cli/compare/v0.4.0...v0.5.0
