@@ -95,6 +95,7 @@ func renderAccounts(accounts []client.Account, current int64) {
 			account.IMAPHost,
 		})
 	}
+	ui.Table([]string{"", "ID", "NAME", "ADDRESS", "IMAP"}, rows)
 }
 
 // renderKeys prints the registered API keys.
