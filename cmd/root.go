@@ -49,7 +49,7 @@ var commandStarted bool
 // init wires the version template and the global flags.
 //
 // The version template is not decoration: cobra's default is
-// `<bin> version <v>`, which facile's installer cannot parse when it verifies
+// `<bin> version <v>`, which kit's installer cannot parse when it verifies
 // what it just installed. Structured output forces colour off in the same
 // place, because a caller piping JSON into jq must not receive escape codes.
 func init() {

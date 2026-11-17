@@ -36,13 +36,14 @@ the dashboard. Authenticates through the same porte SSO flow the browser uses.
 curl -fsSL https://raw.githubusercontent.com/FacileStudio/courrier-cli/main/install.sh | bash
 ```
 
-Installs to `~/.local/bin` via [facile](https://github.com/FacileStudio/facile), the suite
-installer.
+Installs to `~/.local/bin` via [kit](https://github.com/FacileStudio/kit), the Facile package manager.
+Pass `--bin-dir <dir>` to change that, `--source` to build from source, `--no-skill` to skip AI
+agent skill registration.
 
-Already have `facile`:
+Already have `kit`:
 
 ```sh
-facile install courrier
+kit add courrier
 ```
 
 ## Setup
