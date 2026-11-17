@@ -30,7 +30,7 @@ internal/
   loopback/        the porte SSO one-time-code listener
   ui/              CLI-STANDARD §7 output vocabulary
 integrations/      SKILL.md, the AI agent registration
-install.sh         the four-line facile shim
+install.sh         the four-line kit shim
 ```
 
 Dependencies are cobra, `fatih/color`, `golang.org/x/term` and `gopkg.in/yaml.v3`. A fifth
@@ -55,7 +55,7 @@ of shelling out to this binary or reimplementing its HTTP layer.
 - [ ] `courrier send` — to/cc/subject/body/attachments
 - [ ] `--json` on every command carrying data
 - [ ] `integrations/SKILL.md` — agent registration
-- [ ] GoReleaser, the install shim, and a catalog entry in `FacileStudio/facile`
+- [ ] GoReleaser, the install shim, and a catalog entry in `FacileStudio/kit`
 
 ## Deliberately not in v1
 
@@ -64,7 +64,7 @@ of shelling out to this binary or reimplementing its HTTP layer.
   this binary. Different decision, different repo.
 - **Drafts, templates, spaces, contacts, attachment download, connection test.** The routes
   exist; none earns a v1 command. Add on demand.
-- **A self-updater.** CLI-STANDARD §3.1: no new CLI ships one. `facile update` owns it.
+- **A self-updater.** CLI-STANDARD §3.1: no new CLI ships one. `kit update` owns it.
 - **A shared CLI kit in tronc.** Four copies of `ui.go` is the standard's explicit choice.
 
 ## Known instance behaviour worth remembering

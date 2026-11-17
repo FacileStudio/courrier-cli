@@ -23,7 +23,7 @@ internal/
   config/          the instance URL, the session token, the default account
   ui/              CLI-STANDARD §7 output vocabulary
 integrations/      SKILL.md, the AI agent registration
-install.sh         the four-line facile shim; nothing else may go in it
+install.sh         the four-line kit shim; nothing else may go in it
 scripts/check.sh   the quality gate
 ```
 
